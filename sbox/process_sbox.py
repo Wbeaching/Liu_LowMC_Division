@@ -5,7 +5,7 @@ class Sbox:
 
     def SboxSize(self):
         """
-		This function is used to calculate the size of a given sbox
+		    This function is used to calculate the size of a given sbox
 		"""
         s = format(len(self.sbox), "b")
         num_of_1_in_the_binary_experission_of_the_len_of_sbox = s.count("1")

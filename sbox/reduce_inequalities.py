@@ -1,5 +1,6 @@
 from sbox.reducelin import Reduce
 
+
 def simplify_ine(cipher):
     """
     Reshape the linear inequalites from file to a new file
@@ -8,14 +9,14 @@ def simplify_ine(cipher):
     fileobj = open(filename, "r")
     simpfilename = cipher + "_Simplified_Inequalities.txt"
     simfileobj = open(simpfilename, "w")
-    ine = []
     for i in fileobj:
         # if(i!= "\n"):
-        temp = str(i)[15:-6].replace(",","").replace(") x +","")
+        temp = str(i)[15:-6].replace(",", "").replace(") x +", "")
         simfileobj.write(temp + "\n")
     fileobj.close()
     simfileobj.close()
     return simpfilename
+
 
 if __name__ == "__main__":
 

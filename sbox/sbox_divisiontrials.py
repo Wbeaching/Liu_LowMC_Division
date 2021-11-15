@@ -3,11 +3,14 @@
 from sbox.process_sbox import Sbox
 import time
 
+
 def SBox(a, b, c):
     x = a ^ (b & c)
     y = a ^ b ^ (a & c)
     z = a ^ b ^ c ^ (a & b)
     return [x, y, z]
+
+
 '''
 i = 0
 dict = {}
@@ -21,6 +24,7 @@ print(dict)
 # {0: [0, 0, 0], 1: [0, 0, 1], 2: [0, 1, 1], 3: [1, 1, 0], 4: [1, 1, 1], 5: [1, 0, 0], 6: [1, 0, 1], 7: [0, 1, 0]}\
 '''
 
+
 def createDivisionTrials():
     cipher_example = "LowMC_sbox"
     # {0: [0, 0, 0], 1: [0, 0, 1], 2: [0, 1, 1], 3: [1, 1, 0], 4: [1, 1, 1], 5: [1, 0, 0], 6: [1, 0, 1], 7: [0, 1, 0]}
@@ -31,6 +35,7 @@ def createDivisionTrials():
     present.PrintfDivisionTrails(filename)
     time_end = time.time()
     print("Time used = " + str(time_end - time_start) + " Seconds")
+
 
 if __name__ == "__main__":
     createDivisionTrials()
