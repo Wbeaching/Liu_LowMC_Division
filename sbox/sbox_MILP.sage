@@ -12,7 +12,7 @@ def ReadIne(filename):
     return ine
 
 
-cipher_name = "LowMC"
+cipher_name = "LowMC_sbox"
 filename = cipher_name + "_DivisionTrails.txt"
 Points = ReadIne(filename)
 print(Points)

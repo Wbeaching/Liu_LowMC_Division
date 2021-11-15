@@ -1,4 +1,4 @@
-from sbox import Sbox
+from sbox.process_sbox import Sbox
 import copy
 
 class Reduce(Sbox):

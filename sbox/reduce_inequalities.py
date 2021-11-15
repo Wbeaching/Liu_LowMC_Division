@@ -1,4 +1,4 @@
-from reducelin import Reduce
+from sbox.reducelin import Reduce
 
 def simplify_ine(cipher):
     """
@@ -19,7 +19,7 @@ def simplify_ine(cipher):
 
 if __name__ == "__main__":
 
-    cipher = "LowMC"
+    cipher = "LowMC_sbox"
     sbox = [0x0, 0x1, 0x3, 0x6, 0x7, 0x4, 0x5, 0x2]
     simplifiedFile = simplify_ine(cipher)
 
