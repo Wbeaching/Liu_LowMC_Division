@@ -1,6 +1,6 @@
 venv
 /.idea
-/.__pycache__
 *.txt
 *.lp
 *.gitignore
+/__pycache__
