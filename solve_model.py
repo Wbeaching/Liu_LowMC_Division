@@ -1,4 +1,4 @@
-from lowMC_constant import Matrix
+from lowMC_constant import Matrix128  as Matrix
 from gurobipy import GRB
 from itertools import compress
 import time

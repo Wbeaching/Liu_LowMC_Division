@@ -64,7 +64,7 @@ class LowMC:
         for i in range(self.rounds):
             in_vars = self.create_state_var('x', i)
             mid_vars = self.create_state_var('t', i)
-            out_vars = self.create_state_var('x', i+1)
+            out_vars = self.create_state_var('x', i + 1)
             # sbox
             self.constraints_sbox(in_vars, mid_vars)
             # Linearlayer
@@ -103,7 +103,6 @@ class LowMC:
 
     def constraints_linear_layer(self, in_vars, out_vars):
         self.constraints_sbox(in_vars, out_vars)
-
 
     def create_binary(self):
         """
