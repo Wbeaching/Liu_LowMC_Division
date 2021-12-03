@@ -47,16 +47,20 @@ def sub_mtx_rownum(matrix, row_num):
 
 
 def linear_layer_division(intemp128, trials):
+    # intemp128 = [1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+    #              0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+    #              0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+    #              0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
     sub_col = sub_column(Matrix128, intemp128)
     width = sum(intemp128)
     len_m = len(sub_col)
     trials_set = set(trials)
     m = itertools.combinations(range(len_m), width)
     for i in m:
-        if len(i) == len(set(i)):
-            t = np.linalg.matrix_rank(sub_mtx_rownum(sub_col, i))
-            if t == width:
-                trials_set.add(i)
+        # if len(i) == len(set(i)):
+        t = np.linalg.matrix_rank(sub_mtx_rownum(sub_col, i))
+        if t == width:
+            trials_set.add(i)
     return sorted(trials_set)
 
 
@@ -67,151 +71,142 @@ def exchange2vextor(locationlist):
         invec[i] = 1
     return invec
 
+
+SBOX_D = {
+    # "0": [[0], [1], [2]],
+    # "1": [[0], [1], [2]],
+    # "2": [[0], [1], [2]],
+    # "01": [[0, 1], [2]],
+    # "02": [[1], [0, 2]],
+    # "12": [[0], [1, 2]],
+    # "012": [[0, 1, 2]]
+    "0": [[1], [2]],
+    "1": [[0], [2]],
+    "2": [[0], [1]],
+    "01": [[2]],
+    "02": [[1]],
+    "12": [[0]]
+}
+
+
 def sbox_divisoin(trials):
-    trials_s = trials
+    # only one s-box in s-layer
+    trials_s = []
     for in_loc in trials:
         # (0, 1) (0, 8)
         # trials_next =[]
-        if 0 in in_loc :
-            tmp = list(in_loc).remove(0)
+        tmp = list(in_loc)
+        if 0 in in_loc:
             if tmp.count(1) > 0:
-                tmp = tmp.remove(1)
-                if tmp.count(2) == 0:
-                    # (0,1) --> 2
-                    trials_s.append(sorted(tmp + [2]))
+                if tmp.count(2) > 0:
+                    # (0, 1, 2, x) --> (0, 1, 2, x)
+                    trials_s.append(tuple(tmp))
+                else:
+                    # (0, 1, x) --> (2, x)
+                    tmp.remove(0)
+                    tmp.remove(1)
+                    trials_s.append(tuple(sorted(tmp + [2])))
             elif tmp.count(2) > 0:
-                # (0,2)  ---> 1
-                tmp = tmp.remove(2)
-                trials_s.append(sorted(tmp + [1]))
+                # (0, 2, x)  ---> (1, x)
+                tmp.remove(0)
+                tmp.remove(2)
+                trials_s.append(tuple(sorted(tmp + [1])))
             else:
                 # 0 ----> 1, 2
-                trials_s.append(sorted(tmp + [1]))
-                trials_s.append(sorted(tmp + [2]))
+                tmp.remove(0)
+                trials_s.append(tuple(sorted(tmp + [1])))
+                trials_s.append(tuple(sorted(tmp + [2])))
         elif 1 in in_loc:
-            tmp = list(in_loc).remove(1)
-            if 2 in tmp:
-                # (1,2) ----> 0
-                tmp = tmp.remove(2)
-                trials_s.append(sorted(tmp + [0]))
+            if tmp.count(2) > 0:
+                # (1,2,x) ----> (0,x)
+                tmp.remove(1)
+                tmp.remove(2)
+                trials_s.append(tuple(sorted(tmp + [0])))
             else:
                 # 1 ----> 0, 2
-                trials_s.append(sorted(tmp + [2]))
-                trials_s.append(sorted(tmp + [0]))
+                tmp.remove(1)
+                trials_s.append(tuple(sorted(tmp + [0])))
+                trials_s.append(tuple(sorted(tmp + [2])))
         elif 2 in in_loc:
             # 2 ----> 0, 1
-            tmp = list(in_loc).remove(2)
-            trials_s.append(sorted(tmp + [1]))
-            trials_s.append(sorted(tmp + [0]))
+            tmp.remove(2)
+            trials_s.append(tuple(sorted(tmp + [1])))
+            trials_s.append(tuple(sorted(tmp + [0])))
         else:
             break
-    return sorted(trials_s)
+    # trialr_r = set(trials)
+    return sorted(set(trials + trials_s))
+
+
+def size_reduce(before):
+    # before = [(0,),  (0, 1), (0, 2), (1, 2), (1, 3), (2, 8), (2, 9), (3,),(3, 5)]
+    index = 0
+    reduced_trials = before.copy()
+    len_now = len(reduced_trials)
+    while (index < len_now):
+        loc_tmp = set(before[index])
+        for i in range(index + 1, len_now):
+            tmp = before[i]
+            if set(tmp) > loc_tmp:
+                reduced_trials.remove(tmp)
+            else:
+                break
+        index += 1
+        if len(reduced_trials) != len(before):
+            before = reduced_trials.copy()
+            len_now = len(reduced_trials)
+    return reduced_trials
+
+
+def write_file(filename, r, length, trials, time_used):
+    file_obj = open(filename, "a")
+    file_obj.write("%i-Round result begin-----------------------------!\n" % r)
+    file_obj.write("The length of result is %i\n" % length)
+    file_obj.write("Time used = " + time_used + " Seconds\n")
+    file_obj.write(str(trials) + "\n")
+    file_obj.write("%i-Round result end-----------------------------!\n" % r)
+    file_obj.close()
+
 
 if __name__ == '__main__':
-    intemp128 = [1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-                 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-                 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-                 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
-    # intemp64 = [0, 1, 1, 0, 1, 0, 0, 0, 1, 1, 0, 0, 1, 0, 0, 1, 0, 1, 0, 1, 0, 0, 1, 0, 1, 0, 1, 0, 1, 1, 0, 1, 1, 1, 1,
-    #             1, 0, 1, 1, 1, 1, 0, 0, 1, 1, 1, 1, 0, 0, 1, 1, 1, 0, 0, 1, 0, 0, 1, 0, 0, 0, 1, 1, 1]
-    # outtemp = [1, 0, 0, 0, 0, 0, 0, 0, 1, 1, 1, 0, 0, 0, 1, 1]
-    # sub_mtx = [Matrix[i][:16] for i in range(16)]
-    # matrix16 = [[1, 0, 0, 0, 0, 0, 0, 0, 1, 1, 1, 0, 0, 0, 1, 1],
-    #             [0, 1, 0, 0, 0, 0, 0, 0, 1, 0, 0, 1, 0, 0, 1, 0],
-    #             [0, 0, 1, 0, 0, 0, 0, 0, 1, 0, 1, 0, 1, 0, 1, 0],
-    #             [0, 0, 0, 1, 0, 0, 0, 0, 0, 1, 0, 1, 0, 1, 0, 1],
-    #             [0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 1, 0, 1, 0, 1, 0],
-    #             [0, 0, 0, 0, 0, 1, 0, 0, 1, 0, 0, 1, 0, 1, 0, 1],
-    #             [0, 0, 0, 0, 0, 0, 1, 0, 0, 1, 0, 0, 1, 0, 1, 0],
-    #             [0, 0, 0, 0, 0, 0, 0, 1, 1, 1, 0, 0, 0, 1, 1, 0],
-    #             [1, 1, 1, 0, 0, 0, 1, 1, 1, 1, 0, 1, 0, 1, 1, 1],
-    #             [1, 0, 0, 1, 0, 0, 1, 0, 1, 0, 1, 1, 1, 1, 0, 0],
-    #             [1, 0, 1, 0, 1, 0, 1, 0, 0, 0, 0, 0, 1, 0, 0, 1],
-    #             [0, 1, 0, 1, 0, 1, 0, 1, 1, 0, 0, 0, 0, 1, 0, 0],
-    #             [0, 0, 1, 0, 1, 0, 1, 0, 1, 1, 0, 0, 0, 0, 1, 0],
-    #             [1, 0, 0, 1, 0, 1, 0, 1, 1, 1, 1, 0, 0, 0, 0, 1],
-    #             [0, 1, 0, 0, 1, 0, 1, 0, 1, 1, 1, 1, 0, 0, 0, 0],
-    #             [1, 1, 0, 0, 0, 1, 1, 0, 1, 0, 1, 0, 1, 1, 1, 1]]
-    # row_num = {
-    #     1: [1, 6, 7, 8, 9, 13, 14],
-    #     3: [0, 3, 6, 7, 8],
-    #     4: [0, 2, 4, 9, 13, 14, 15],
-    #     5: [0, 5, 6, 7, 14, 15],
-    #     10: [0, 10],
-    #     11: [2, 7, 11, 14]
-    # }
-    # row_num1 = [
-    #     [1, 6, 7, 8, 9, 13, 14],
-    #     [0, 3, 6, 7, 8],
-    #     [0, 2, 4, 9, 13, 14, 15],
-    #     [0, 5, 6, 7, 14, 15],
-    #     [0, 10],
-    #     [2, 7, 11, 14]
-    # ]
+
+    input_active = [(0, 1, 2)]
+    r = 3
     time_start = time.time()
-    trials = []
-    trials = linear_layer_division(intemp128, trials)
-
-    # sbox
-    SBOX_D = {
-        # "0": [[0], [1], [2]],
-        # "1": [[0], [1], [2]],
-        # "2": [[0], [1], [2]],
-        # "01": [[0, 1], [2]],
-        # "02": [[1], [0, 2]],
-        # "12": [[0], [1, 2]],
-        # "012": [[0, 1, 2]]
-        "0": [[1], [2]],
-        "1": [[0], [2]],
-        "2": [[0], [1]],
-        "01": [[2]],
-        "02": [[1]],
-        "12": [[0]],
-    }
-    trials_s = trials
-    for in_loc in trials:
-        # (0, 1) (0, 8)
-        # trials_next =[]
-        if 0 in in_loc :
-            tmp = list(in_loc).remove(0)
-            if tmp.count(1) > 0:
-                tmp = tmp.remove(1)
-                if tmp.count(2) == 0:
-                    # (0,1) --> 2
-                    trials_s.append(sorted(tmp + [2]))
-            elif tmp.count(2) > 0:
-                # (0,2)  ---> 1
-                tmp = tmp.remove(2)
-                trials_s.append(sorted(tmp + [1]))
-            else:
-                # 0 ----> 1, 2
-                trials_s.append(sorted(tmp + [1]))
-                trials_s.append(sorted(tmp + [2]))
-        elif 1 in in_loc:
-            tmp = list(in_loc).remove(1)
-            if 2 in tmp:
-                # (1,2) ----> 0
-                tmp = tmp.remove(2)
-                trials_s.append(sorted(tmp + [0]))
-            else:
-                # 1 ----> 0, 2
-                trials_s.append(sorted(tmp + [2]))
-                trials_s.append(sorted(tmp + [0]))
-        elif 2 in in_loc:
-            # 2 ----> 0, 1
-            tmp = list(in_loc).remove(2)
-            trials_s.append(sorted(tmp + [1]))
-            trials_s.append(sorted(tmp + [0]))
-        else:
-            break
-    time_end = time.time()
-
+    # 1 round
+    # S-Box
+    time_start1 = time.time()
+    trials = size_reduce(sbox_divisoin(input_active))
     # linear layer
     trials_r = []
     for in_loc in trials:
         in_vex_r = exchange2vextor(in_loc)
         trials_r = linear_layer_division(in_vex_r, trials_r)
+    trials_r = size_reduce(trials_r)
+    # wtite file
+    time_end1 = time.time()
+    time_used = str(time_end1 - time_start1)
+    filename = 'lowMC_%iround_result_input=%s.txt' % (r, str(input_active))
+    file_obj = open(filename, "w+")
+    file_obj.close()
+    write_file(filename, 1, len(trials_r),  trials_r, time_used)
+
+    # 2- r rounds
+    for i in range(2, r+1):
+        time_starti = time.time()
+
+        trials = size_reduce(sbox_divisoin(trials_r))
+        trials_r = []
+        for in_loc in trials:
+            in_vex_r = exchange2vextor(in_loc)
+            trials_r = linear_layer_division(in_vex_r, trials_r)
+
+        trials_r = size_reduce(trials_r)
+
+        time_endi = time.time()
+        time_usedi = str(time_endi - time_starti)
+        write_file(filename, i, len(trials_r), trials_r, time_usedi)
+
     time_end = time.time()
-    # print(index)
-    # print(trials_r)
-    print(len(trials_r))
-    print("Time 2 round used = " + str(time_end - time_start) + " Seconds")
+    time_used = str(time_end - time_start)
+    print(str(r)+ "-Round Time Used = " + time_used + "Second!")
