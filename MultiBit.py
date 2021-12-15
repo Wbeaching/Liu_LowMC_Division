@@ -2,7 +2,7 @@ import gurobipy as gp
 import time
 
 
-class FieldMultiBit:
+class MultiBit:
     def __init__(self, block_size, round, input_DP, filename_model, filename_result):
         self.block_size = block_size
         self.word_size = int(block_size / 4)
@@ -11,37 +11,37 @@ class FieldMultiBit:
         self.file_model = filename_model
         self.file_result = filename_result
 
-    ANF_ab = [[['a0', 'b0'], ['a1', 'b7'], ['a2', 'b6'], ['a3', 'b5'], ['a4', 'b4'], ['a5', 'b3'], ['a5', 'b7'],
-               ['a6', 'b2'], ['a6', 'b6'], ['a6', 'b7'], ['a7', 'b1'], ['a7', 'b5'], ['a7', 'b6']],
-              [['a0', 'b1'], ['a1', 'b0'], ['a1', 'b7'], ['a2', 'b6'], ['a2', 'b7'], ['a3', 'b5'], ['a3', 'b6'],
-               ['a4', 'b4'], ['a4', 'b5'], ['a5', 'b3'], ['a5', 'b4'], ['a5', 'b7'], ['a6', 'b2'], ['a6', 'b3'],
-               ['a6', 'b6'], ['a7', 'b1'], ['a7', 'b2'], ['a7', 'b5'], ['a7', 'b7']],
-              [['a0', 'b2'], ['a1', 'b1'], ['a2', 'b0'], ['a2', 'b7'], ['a3', 'b6'], ['a3', 'b7'], ['a4', 'b5'],
-               ['a4', 'b6'], ['a5', 'b4'], ['a5', 'b5'], ['a6', 'b3'], ['a6', 'b4'], ['a6', 'b7'], ['a7', 'b2'],
-               ['a7', 'b3'], ['a7', 'b6']],
-              [['a0', 'b3'], ['a1', 'b2'], ['a1', 'b7'], ['a2', 'b1'], ['a2', 'b6'], ['a3', 'b0'], ['a3', 'b5'],
-               ['a3', 'b7'], ['a4', 'b4'], ['a4', 'b6'], ['a4', 'b7'], ['a5', 'b3'], ['a5', 'b5'], ['a5', 'b6'],
-               ['a5', 'b7'], ['a6', 'b2'], ['a6', 'b4'], ['a6', 'b5'], ['a6', 'b6'], ['a6', 'b7'], ['a7', 'b1'],
-               ['a7', 'b3'], ['a7', 'b4'], ['a7', 'b5'], ['a7', 'b6'], ['a7', 'b7']],
-              [['a0', 'b4'], ['a1', 'b3'], ['a1', 'b7'], ['a2', 'b2'], ['a2', 'b6'], ['a2', 'b7'], ['a3', 'b1'],
-               ['a3', 'b5'], ['a3', 'b6'], ['a4', 'b0'], ['a4', 'b4'], ['a4', 'b5'], ['a4', 'b7'], ['a5', 'b3'],
-               ['a5', 'b4'], ['a5', 'b6'], ['a6', 'b2'], ['a6', 'b3'], ['a6', 'b5'], ['a7', 'b1'], ['a7', 'b2'],
-               ['a7', 'b4'], ['a7', 'b7']],
-              [['a0', 'b5'], ['a1', 'b4'], ['a2', 'b3'], ['a2', 'b7'], ['a3', 'b2'], ['a3', 'b6'], ['a3', 'b7'],
-               ['a4', 'b1'], ['a4', 'b5'], ['a4', 'b6'], ['a5', 'b0'], ['a5', 'b4'], ['a5', 'b5'], ['a5', 'b7'],
-               ['a6', 'b3'], ['a6', 'b4'], ['a6', 'b6'], ['a7', 'b2'], ['a7', 'b3'], ['a7', 'b5']],
-              [['a0', 'b6'], ['a1', 'b5'], ['a2', 'b4'], ['a3', 'b3'], ['a3', 'b7'], ['a4', 'b2'], ['a4', 'b6'],
-               ['a4', 'b7'], ['a5', 'b1'], ['a5', 'b5'], ['a5', 'b6'], ['a6', 'b0'], ['a6', 'b4'], ['a6', 'b5'],
-               ['a6', 'b7'], ['a7', 'b3'], ['a7', 'b4'], ['a7', 'b6']],
-              [['a0', 'b7'], ['a1', 'b6'], ['a2', 'b5'], ['a3', 'b4'], ['a4', 'b3'], ['a4', 'b7'], ['a5', 'b2'],
-               ['a5', 'b6'], ['a5', 'b7'], ['a6', 'b1'], ['a6', 'b5'], ['a6', 'b6'], ['a7', 'b0'], ['a7', 'b4'],
-               ['a7', 'b5'], ['a7', 'b7']]]
+    ANF_st = [[['s0', 't0'], ['s1', 't7'], ['s2', 't6'], ['s3', 't5'], ['s4', 't4'], ['s5', 't3'], ['s5', 't7'],
+               ['s6', 't2'], ['s6', 't6'], ['s6', 't7'], ['s7', 't1'], ['s7', 't5'], ['s7', 't6']],
+              [['s0', 't1'], ['s1', 't0'], ['s1', 't7'], ['s2', 't6'], ['s2', 't7'], ['s3', 't5'], ['s3', 't6'],
+               ['s4', 't4'], ['s4', 't5'], ['s5', 't3'], ['s5', 't4'], ['s5', 't7'], ['s6', 't2'], ['s6', 't3'],
+               ['s6', 't6'], ['s7', 't1'], ['s7', 't2'], ['s7', 't5'], ['s7', 't7']],
+              [['s0', 't2'], ['s1', 't1'], ['s2', 't0'], ['s2', 't7'], ['s3', 't6'], ['s3', 't7'], ['s4', 't5'],
+               ['s4', 't6'], ['s5', 't4'], ['s5', 't5'], ['s6', 't3'], ['s6', 't4'], ['s6', 't7'], ['s7', 't2'],
+               ['s7', 't3'], ['s7', 't6']],
+              [['s0', 't3'], ['s1', 't2'], ['s1', 't7'], ['s2', 't1'], ['s2', 't6'], ['s3', 't0'], ['s3', 't5'],
+               ['s3', 't7'], ['s4', 't4'], ['s4', 't6'], ['s4', 't7'], ['s5', 't3'], ['s5', 't5'], ['s5', 't6'],
+               ['s5', 't7'], ['s6', 't2'], ['s6', 't4'], ['s6', 't5'], ['s6', 't6'], ['s6', 't7'], ['s7', 't1'],
+               ['s7', 't3'], ['s7', 't4'], ['s7', 't5'], ['s7', 't6'], ['s7', 't7']],
+              [['s0', 't4'], ['s1', 't3'], ['s1', 't7'], ['s2', 't2'], ['s2', 't6'], ['s2', 't7'], ['s3', 't1'],
+               ['s3', 't5'], ['s3', 't6'], ['s4', 't0'], ['s4', 't4'], ['s4', 't5'], ['s4', 't7'], ['s5', 't3'],
+               ['s5', 't4'], ['s5', 't6'], ['s6', 't2'], ['s6', 't3'], ['s6', 't5'], ['s7', 't1'], ['s7', 't2'],
+               ['s7', 't4'], ['s7', 't7']],
+              [['s0', 't5'], ['s1', 't4'], ['s2', 't3'], ['s2', 't7'], ['s3', 't2'], ['s3', 't6'], ['s3', 't7'],
+               ['s4', 't1'], ['s4', 't5'], ['s4', 't6'], ['s5', 't0'], ['s5', 't4'], ['s5', 't5'], ['s5', 't7'],
+               ['s6', 't3'], ['s6', 't4'], ['s6', 't6'], ['s7', 't2'], ['s7', 't3'], ['s7', 't5']],
+              [['s0', 't6'], ['s1', 't5'], ['s2', 't4'], ['s3', 't3'], ['s3', 't7'], ['s4', 't2'], ['s4', 't6'],
+               ['s4', 't7'], ['s5', 't1'], ['s5', 't5'], ['s5', 't6'], ['s6', 't0'], ['s6', 't4'], ['s6', 't5'],
+               ['s6', 't7'], ['s7', 't3'], ['s7', 't4'], ['s7', 't6']],
+              [['s0', 't7'], ['s1', 't6'], ['s2', 't5'], ['s3', 't4'], ['s4', 't3'], ['s4', 't7'], ['s5', 't2'],
+               ['s5', 't6'], ['s5', 't7'], ['s6', 't1'], ['s6', 't5'], ['s6', 't6'], ['s7', 't0'], ['s7', 't4'],
+               ['s7', 't5'], ['s7', 't7']]]
 
     def create_ANF_map_and_indexw(self):
         ANF_map = {}
         index_w = 0
-        for wi in self.ANF_ab:
-            # [['a0', 'b0'], ['a1', 'b7'], ['a2', 'b6'], ['a3', 'b5'], ['a4', 'b4'], ['a5', 'b3'], ['a5', 'b7'],
+        for wi in self.ANF_st:
+            # [['s0', 'b0'], ['s1', 'b7'], ['s2', 'b6'], ['s3', 'b5'], ['s4', 'b4'], ['s5', 'b3'], ['s5', 'b7'],
             index_w = len(wi) + index_w
             for wij in wi:
                 left = wij[0]
@@ -150,17 +150,17 @@ class FieldMultiBit:
 
     def constraint_multi(self, round):
         # z0 * z1 = z3
-        # x ---> a[0]
+        # x ---> s[0]
         # mid_num = [8, 11, 14, 17, 20, 24, 27, 30]
-        # 0. calculate the num of ai and bi ANF_map = {'ai' : num_of_ai}
-        #                                    ANF_ab_round = [[[a0_r_0, a1_r_0,....],[b0_r_0, b7_r_0...]],[[],[]]]
+        # 0. calculate the num of si and ti ANF_map = {'si' : num_of_ai}
+        #                                    ANF_st_round = [[[s0_r_0, s1_r_0,....],[t0_r_0, t7_r_0...]],[[],[]]]
         ANF_map = {}
-        ANF_ab_round = []
-        for wi in self.ANF_ab:
-            # [['a0', 'b0'], ['a1', 'b7'], ['a2', 'b6'], ['a3', 'b5'], ['a4', 'b4'], ['a5', 'b3'], ['a5', 'b7'],
-            #  ['a6', 'b2'], ['a6', 'b6'], ['a6', 'b7'], ['a7', 'b1'], ['a7', 'b5'], ['a7', 'b6']],
-            vars_ai = []
-            vars_bi = []
+        ANF_st_round = []
+        for wi in self.ANF_st:
+            # [['s0', 't0'], ['s1', 't7'], ['s2', 't6'], ['s3', 't5'], ['s4', 't4'], ['s5', 't3'], ['s5', 't7'],
+            #  ['s6', 't2'], ['s6', 't6'], ['s6', 't7'], ['s7', 't1'], ['s7', 't5'], ['s7', 't6']],
+            vars_si = []
+            vars_ti = []
             for wij in wi:
                 left = wij[0]
                 right = wij[1]
@@ -172,9 +172,9 @@ class FieldMultiBit:
                     right_n = ANF_map.get(right) + 1
                 ANF_map[left] = left_n
                 ANF_map[right] = right_n
-                vars_ai.append(left + '_%i' % round + '_%i' % left_n)
-                vars_bi.append(right + '_%i' % round + '_%i' % right_n)
-            ANF_ab_round.append([vars_ai, vars_bi])
+                vars_si.append(left + '_%i' % round + '_%i' % left_n)
+                vars_ti.append(right + '_%i' % round + '_%i' % right_n)
+            ANF_st_round.append([vars_si, vars_ti])
 
         # 1. write copy in ANF
         mid_varx = ['z' + '_%i' % round + '_%i' % i for i in range(self.word_size)]
@@ -182,11 +182,11 @@ class FieldMultiBit:
         mid_varz = ['z' + '_%i' % round + '_%i' % i for i in range(self.word_size * 3, self.word_size * 4)]
         mid_all = []
         for i in range(self.word_size):
-            ai = 'a' + str(i)
-            mid_all.append([ai + '_%i' % round + '_%i' % i for i in range(ANF_map.get(ai) + 1)])
+            si = 's' + str(i)
+            mid_all.append([si + '_%i' % round + '_%i' % i for i in range(ANF_map.get(si) + 1)])
         for i in range(self.word_size):
-            bi = 'b' + str(i)
-            mid_all.append([bi + '_%i' % round + '_%i' % i for i in range(ANF_map.get(bi) + 1)])
+            ti = 't' + str(i)
+            mid_all.append([ti + '_%i' % round + '_%i' % i for i in range(ANF_map.get(ti) + 1)])
         file_obj = open(self.file_model, "a")
         for ieq in zip(mid_varx + mid_vary, mid_all):
             eqn = [ieq[0]]  # z_r_0
@@ -201,12 +201,12 @@ class FieldMultiBit:
         # 2. write and in ANF
         index_w = 0
         eqn_z = []
-        for wi, zi in zip(ANF_ab_round, mid_varz):
+        for wi, zi in zip(ANF_st_round, mid_varz):
             vars_wi = ['w' + '_%i' % round + '_%i' % i for i in range(index_w, len(wi[0]) + index_w)]
             index_w = len(wi[0]) + index_w
-            vars_ai = wi[0]
-            vars_bi = wi[1]
-            self.constraint_and(vars_ai, vars_bi, vars_wi)
+            vars_si = wi[0]
+            vars_ti = wi[1]
+            self.constraint_and(vars_si, vars_ti, vars_wi)
             # zor in each line in ANF
             eqn_zi = [zi]
             for i in vars_wi:
@@ -240,7 +240,8 @@ class FieldMultiBit:
         Specify variable type.
         """
         file_obj = open(self.file_model, "a")
-        file_obj.write("Binary\n")
+        file_obj.write("\n")
+        file_obj.write("binaries\n")
         for ro in range(0, self.round_num):
             for j in self.create_state_var('x', ro):
                 file_obj.write(j)
@@ -249,14 +250,14 @@ class FieldMultiBit:
                 file_obj.write(j)
                 file_obj.write("\n")
             for k in range(self.word_size):
-                ai = 'a' + str(k)
-                tmp = [ai + '_%i' % ro + '_%i' % t for t in range(ANF_map.get(ai) + 1)]
+                si = 's' + str(k)
+                tmp = [si + '_%i' % ro + '_%i' % t for t in range(ANF_map.get(si) + 1)]
                 for j in tmp:
                     file_obj.write(j)
                     file_obj.write("\n")
             for k in range(self.word_size):
-                bi = 'b' + str(k)
-                tmp = [bi + '_%i' % ro + '_%i' % t for t in range(ANF_map.get(bi) + 1)]
+                ti = 't' + str(k)
+                tmp = [ti + '_%i' % ro + '_%i' % t for t in range(ANF_map.get(ti) + 1)]
                 for j in tmp:
                     file_obj.write(j)
                     file_obj.write("\n")
@@ -282,6 +283,8 @@ class FieldMultiBit:
         """
         time_start = time.time()
         m = gp.read(self.file_model)
+        # 设置整数精度
+        m.setParam("IntFeasTol", 1e-6)
         counter = 0
         set_zero = []
         MILP_trials = []
@@ -335,13 +338,13 @@ class FieldMultiBit:
         for u in set_zero:
             file_obj.write(u)
             file_obj.write("\n")
-        # file_obj.write("The division trials is : \n")
-        # for index, Mi in enumerate(MILP_trials):
-        #     file_obj.write("The division trials [%i] :\n" % index)
-        #     for v in Mi:
-        #         file_obj.write(v + '\n')
-        #     # file_obj.write("\n")
-        # file_obj.write("\n")
+        file_obj.write("The division trials is : \n")
+        for index, Mi in enumerate(MILP_trials):
+            file_obj.write("The division trials [%i] :\n" % index)
+            for v in Mi:
+                file_obj.write(v + '\n')
+            # file_obj.write("\n")
+        file_obj.write("\n")
         time_end = time.time()
         file_obj.write(("Time used = " + str(time_end - time_start)))
         file_obj.close()
@@ -369,15 +372,15 @@ class FieldMultiBit:
 
 if __name__ == "__main__":
     block_size = 32
-    input_DP = "01111111111111111111111111111111"
+    input_DP = "11111111111111111111111111111110"
     activebits = 31
-    rounds = 19
+    rounds = 16
 
-    filename_model = 'FieldMulti_bit%i_%i_model.lp' % (rounds, activebits)
-    filename_result = "FieldMulti_bit%i_%i_result.txt" % (rounds, activebits)
+    filename_model = 'Multi_bit_%i_%i_model.lp' % (rounds, activebits)
+    filename_result = "Multi_bit_%i_%i_result.txt" % (rounds, activebits)
     file_r = open(filename_result, "w+")
     file_r.close()
-    fm = FieldMultiBit(block_size, rounds, input_DP, filename_model, filename_result)
+    fm = MultiBit(block_size, rounds, input_DP, filename_model, filename_result)
     # 最左边为最低位
     # Anf_m, index_w = fm.create_ANF_map_and_indexw()
     fm.create_model(input_DP)

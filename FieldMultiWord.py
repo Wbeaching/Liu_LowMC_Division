@@ -204,8 +204,8 @@ class FieldMultiWord:
 
 if __name__ == "__main__":
     word_num = 4
-    round_num = 4
-    input_DP = [8, 8, 8, 7]
+    round_num = 1
+    input_DP = [8,8,8,7]
     activebits = 1
     filename_model = 'FieldMultibWord%i_%i_model.lp' % (round_num, activebits)
     filename_result = "FieldMultiWord%i_%i_result.txt" % (round_num, activebits)

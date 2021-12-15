@@ -2,10 +2,7 @@ import gurobipy as gp
 import time
 
 
-# from solve_model import *
-
-
-class FieldMulti:
+class MultiWord:
     # constant parameters
 
     def __init__(self, n, r, filename_model, filename_result):
@@ -50,28 +47,35 @@ class FieldMulti:
         # x1 + x2 * x3 + x4 + c
         for i in range(self.rounds):
             # copy x_i_1--
-            in_vars = self.create_state_var('x', i, self.word_num)
-            mid_vars = self.create_state_var('a', i, 9)
-            out_vars = self.create_state_var('x', i + 1, self.word_num)
-            # sbox
-            self.constraints_sbox(in_vars, mid_vars)
+            in_vars = self.create_state_var('x', i, 4)
+            mid_a = self.create_state_var('a', i, 9)
+            mid_b = self.create_state_var('b', i, 9)
+            mid_c = self.create_state_var('c', i, 9)
+            out_vars = self.create_state_var('x', i + 1, 9)
 
-    def constraints_sbox(self, x, a):
+            self.constraints_fi(in_vars, mid_a)
+            self.constraints_fi(mid_a, mid_b)
+            self.constraints_fi(mid_b, mid_c)
+            self.constraints_fi(mid_c, out_vars)
+
+    def constraints_fi(self, x, a):
         """
         Generate the constraints by sbox layer.
         """
-        file_obj = open(self.filename_model, "a")
         # copy
+        ineq = []
+        ineq.append(str(x[1]) + " - " + str(a[0]) + " - " + str(a[4]) + " = 0\n")
+        ineq.append(str(x[2]) + " - " + str(a[1]) + " - " + str(a[5]) + " = 0\n")
+        ineq.append(str(x[3]) + " - " + str(a[2]) + " - " + str(a[6]) + " = 0\n")
+        ineq.append(str(a[7]) + " - " + str(a[4]) + " - " + str(a[5]) + " = 0\n")
+        ineq.append(str(a[7]) + " - 2 " + str(a[8]) + " <= 0\n")
+        ineq.append(str(a[7]) + " - 2 " + str(a[8]) + " >= -1\n")
+        ineq.append(str(a[3]) + " - " + str(a[6]) + " - " + str(a[8]) + " - " + str(x[0]) + " = 0\n")
+        ineq.append(str(a[3]) + " <= 8\n")
 
-        ineq1 = str(x[1]) + " - " + str(a[0]) + " - " + str(a[4]) + " = 0"
-        ineq2 = str(x[2]) + " - " + str(a[1]) + " - " + str(a[5]) + " = 0"
-        ineq3 = str(x[3]) + " - " + str(a[2]) + " - " + str(a[6]) + " = 0"
-        ineq4 = str(x[3]) + " - " + str(a[2]) + " - " + str(a[6]) + " = 0"
-        file_obj.write(ineq1)
-        file_obj.write(ineq2)
-        file_obj.write(ineq3)
-        file_obj.write(ineq4)
-        file_obj.write("\n")
+        file_obj = open(self.filename_model, "a")
+        for i in ineq:
+            file_obj.write(i)
         file_obj.close()
 
     def create_general(self):
@@ -82,13 +86,19 @@ class FieldMulti:
         file_obj = open(self.filename_model, "a")
         file_obj.write("general\n")
         for i in range(0, self.rounds):
-            for j in self.create_state_var('x', i, self.word_num):
+            for j in self.create_state_var('x', i, 9):
                 file_obj.write(j)
                 file_obj.write("\n")
             for j in self.create_state_var('a', i, 9):
                 file_obj.write(j)
                 file_obj.write("\n")
-        for j in self.create_state_var('x', self.rounds):
+            for j in self.create_state_var('b', i, 9):
+                file_obj.write(j)
+                file_obj.write("\n")
+            for j in self.create_state_var('c', i, 9):
+                file_obj.write(j)
+                file_obj.write("\n")
+        for j in self.create_state_var('x', self.rounds, 9):
             file_obj.write(j)
             file_obj.write("\n")
         file_obj.write("END")
@@ -102,21 +112,30 @@ class FieldMulti:
 
     def solve_model(self):
         """
-        Solve the MILP model to search the integral distinguisher of Present.
+        Solve the MILP model to search the integral distinguisher.
         """
         time_start = time.time()
         m = gp.read(self.filename_model)
         counter = 0
         set_zero = []
+        MILP_trials = []
         global_flag = False
         while counter < self.word_num:
             m.optimize()
             # Gurobi syntax: m.Status == 2 represents the model is feasible.
             if m.Status == 2:
+                all_vars = m.getVars()
+                MILP_trial = []
+                for v in all_vars:
+                    name = v.getAttr('VarName')
+                    valu = v.getAttr('x')
+                    MILP_trial.append(name + ' = ' + str(valu))
+                MILP_trials.append(MILP_trial)
                 obj = m.getObjective()
                 if obj.getValue() > 1:
                     global_flag = True
                     break
+
                 else:
                     fileobj = open(self.filename_result, "a")
                     fileobj.write("************************************COUNTER = %d\n" % counter)
@@ -150,6 +169,12 @@ class FieldMulti:
         for u in set_zero:
             fileobj.write(u)
             fileobj.write("\n")
+        fileobj.write("The division trials is : \n")
+        for index, Mi in enumerate(MILP_trials):
+            fileobj.write("The division trials [%i] :\n" % index)
+            for v in Mi:
+                fileobj.write(v + '\n')
+            # fileobj.write("\n")
         fileobj.write("\n")
         time_end = time.time()
         fileobj.write(("Time used = " + str(time_end - time_start)))
@@ -178,19 +203,14 @@ class FieldMulti:
 
 if __name__ == "__main__":
     word_num = 4
-    round_num = 2
-
-    # input_DP = '0000000000000000000000000000000000000000000000000000000000000000' \
-    #            '0000000011111111111111111111111111111111111111111111111111111111'
-    input_DP = [7, 8, 8, 8]
+    round_num = 5
+    input_DP = [8, 8, 8, 7]
     activebits = 1
-    filename_model = 'FieldMulti%i_%i_model.lp' % (round_num, activebits)
-    filename_result = "FieldMulti%i_%i_result.txt" % (round_num, activebits)
+    filename_model = 'Multi_Word_%i_%i_model.lp' % (round_num, activebits)
+    filename_result = "Multi_Word_%i_%i_result.txt" % (round_num, activebits)
     file_obj = open(filename_result, "w+")
     file_obj.close()
-    lm = FieldMulti(word_num, round_num, filename_model, filename_result)
+    lm = MultiWord(word_num, round_num, filename_model, filename_result)
     # 最左边为最低位
-
-
     lm.create_model(input_DP)
     lm.solve_model()
