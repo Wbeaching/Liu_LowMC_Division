@@ -135,9 +135,6 @@ class FeistelMultiWord:
         file_obj.close()
 
     def constraints_fi(self, x, a):
-        """
-        Generate the constraints by sbox layer.
-        """
         # copy
         ineq = []
         ineq.append(str(x[1]) + " - " + str(a[0]) + " - " + str(a[4]) + " = 0\n")
@@ -147,7 +144,7 @@ class FeistelMultiWord:
         ineq.append(str(a[7]) + " - 2 " + str(a[8]) + " <= 0\n")
         ineq.append(str(a[7]) + " - 2 " + str(a[8]) + " >= -1\n")
         ineq.append(str(a[3]) + " - " + str(a[6]) + " - " + str(a[8]) + " - " + str(x[0]) + " = 0\n")
-        ineq.append(str(a[3]) + " <= 8\n")
+        ineq.append(str(a[3]) + " <= 4\n")
 
         file_obj = open(self.file_model, "a")
         for i in ineq:
@@ -289,13 +286,13 @@ class FeistelMultiWord:
 if __name__ == "__main__":
     # block size = 16*8 = 128
     word_num = 16
-    input_DP = [8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 7]
+    input_DP = [4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 3]
     # fn_word_num = word_num / 4
     fn_word_num = 4
-    round_num = 9
+    round_num = 1
     activebits = 1
-    file_model = 'Feistel_Word%i_%i_model.lp' % (round_num, activebits)
-    file_result = "Feistel_Word%i_%i_result.txt" % (round_num, activebits)
+    file_model = 'Feistel_Word64%i_model.lp' % (round_num)
+    file_result = "Feistel_Word64%i_result.txt" % (round_num)
     file_obj = open(file_result, "w+")
     file_obj.close()
     lm = FeistelMultiWord(fn_word_num, round_num, file_model, file_result)

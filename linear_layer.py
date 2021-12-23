@@ -46,7 +46,7 @@ def sub_mtx_rownum(matrix, row_num):
     return submtx
 
 
-def linear_layer_division(intemp128, trials):
+def linear_layer_division(intemp128, trails):
     # intemp128 = [1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
     #              0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
     #              0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
@@ -54,14 +54,14 @@ def linear_layer_division(intemp128, trials):
     sub_col = sub_column(Matrix128, intemp128)
     width = sum(intemp128)
     len_m = len(sub_col)
-    trials_set = set(trials)
+    trails_set = set(trails)
     m = itertools.combinations(range(len_m), width)
     for i in m:
         # if len(i) == len(set(i)):
         t = np.linalg.matrix_rank(sub_mtx_rownum(sub_col, i))
         if t == width:
-            trials_set.add(i)
-    return sorted(trials_set)
+            trails_set.add(i)
+    return sorted(trails_set)
 
 
 def exchange2vextor(locationlist):
@@ -89,81 +89,81 @@ SBOX_D = {
 }
 
 
-def sbox_divisoin(trials):
+def sbox_divisoin(trails):
     # only one s-box in s-layer
-    trials_s = []
-    for in_loc in trials:
+    trails_s = []
+    for in_loc in trails:
         # (0, 1) (0, 8)
-        # trials_next =[]
+        # trails_next =[]
         tmp = list(in_loc)
         if 0 in in_loc:
             if tmp.count(1) > 0:
                 if tmp.count(2) > 0:
                     # (0, 1, 2, x) --> (0, 1, 2, x)
-                    trials_s.append(tuple(tmp))
+                    trails_s.append(tuple(tmp))
                 else:
                     # (0, 1, x) --> (2, x)
                     tmp.remove(0)
                     tmp.remove(1)
-                    trials_s.append(tuple(sorted(tmp + [2])))
+                    trails_s.append(tuple(sorted(tmp + [2])))
             elif tmp.count(2) > 0:
                 # (0, 2, x)  ---> (1, x)
                 tmp.remove(0)
                 tmp.remove(2)
-                trials_s.append(tuple(sorted(tmp + [1])))
+                trails_s.append(tuple(sorted(tmp + [1])))
             else:
                 # 0 ----> 1, 2
                 tmp.remove(0)
-                trials_s.append(tuple(sorted(tmp + [1])))
-                trials_s.append(tuple(sorted(tmp + [2])))
+                trails_s.append(tuple(sorted(tmp + [1])))
+                trails_s.append(tuple(sorted(tmp + [2])))
         elif 1 in in_loc:
             if tmp.count(2) > 0:
                 # (1,2,x) ----> (0,x)
                 tmp.remove(1)
                 tmp.remove(2)
-                trials_s.append(tuple(sorted(tmp + [0])))
+                trails_s.append(tuple(sorted(tmp + [0])))
             else:
                 # 1 ----> 0, 2
                 tmp.remove(1)
-                trials_s.append(tuple(sorted(tmp + [0])))
-                trials_s.append(tuple(sorted(tmp + [2])))
+                trails_s.append(tuple(sorted(tmp + [0])))
+                trails_s.append(tuple(sorted(tmp + [2])))
         elif 2 in in_loc:
             # 2 ----> 0, 1
             tmp.remove(2)
-            trials_s.append(tuple(sorted(tmp + [1])))
-            trials_s.append(tuple(sorted(tmp + [0])))
+            trails_s.append(tuple(sorted(tmp + [1])))
+            trails_s.append(tuple(sorted(tmp + [0])))
         else:
             break
-    # trialr_r = set(trials)
-    return sorted(set(trials + trials_s))
+    # trialr_r = set(trails)
+    return sorted(set(trails + trails_s))
 
 
 def size_reduce(before):
     # before = [(0,),  (0, 1), (0, 2), (1, 2), (1, 3), (2, 8), (2, 9), (3,),(3, 5)]
     index = 0
-    reduced_trials = before.copy()
-    len_now = len(reduced_trials)
+    reduced_trails = before.copy()
+    len_now = len(reduced_trails)
     while (index < len_now):
         loc_tmp = set(before[index])
         for i in range(index + 1, len_now):
             tmp = before[i]
             if set(tmp) > loc_tmp:
-                reduced_trials.remove(tmp)
+                reduced_trails.remove(tmp)
             else:
                 break
         index += 1
-        if len(reduced_trials) != len(before):
-            before = reduced_trials.copy()
-            len_now = len(reduced_trials)
-    return reduced_trials
+        if len(reduced_trails) != len(before):
+            before = reduced_trails.copy()
+            len_now = len(reduced_trails)
+    return reduced_trails
 
 
-def write_file(filename, r, length, trials, time_used):
+def write_file(filename, r, length, trails, time_used):
     file_obj = open(filename, "a")
     file_obj.write("%i-Round result begin-----------------------------!\n" % r)
     file_obj.write("The length of result is %i\n" % length)
     file_obj.write("Time used = " + time_used + " Seconds\n")
-    file_obj.write(str(trials) + "\n")
+    file_obj.write(str(trails) + "\n")
     file_obj.write("%i-Round result end-----------------------------!\n" % r)
     file_obj.close()
 
@@ -176,36 +176,36 @@ if __name__ == '__main__':
     # 1 round
     # S-Box
     time_start1 = time.time()
-    trials = size_reduce(sbox_divisoin(input_active))
+    trails = size_reduce(sbox_divisoin(input_active))
     # linear layer
-    trials_r = []
-    for in_loc in trials:
+    trails_r = []
+    for in_loc in trails:
         in_vex_r = exchange2vextor(in_loc)
-        trials_r = linear_layer_division(in_vex_r, trials_r)
-    trials_r = size_reduce(trials_r)
+        trails_r = linear_layer_division(in_vex_r, trails_r)
+    trails_r = size_reduce(trails_r)
     # wtite file
     time_end1 = time.time()
     time_used = str(time_end1 - time_start1)
     filename = 'lowMC_%iround_result_input=%s.txt' % (r, str(input_active))
     file_obj = open(filename, "w+")
     file_obj.close()
-    write_file(filename, 1, len(trials_r),  trials_r, time_used)
+    write_file(filename, 1, len(trails_r),  trails_r, time_used)
 
     # 2- r rounds
     for i in range(2, r+1):
         time_starti = time.time()
 
-        trials = size_reduce(sbox_divisoin(trials_r))
-        trials_r = []
-        for in_loc in trials:
+        trails = size_reduce(sbox_divisoin(trails_r))
+        trails_r = []
+        for in_loc in trails:
             in_vex_r = exchange2vextor(in_loc)
-            trials_r = linear_layer_division(in_vex_r, trials_r)
+            trails_r = linear_layer_division(in_vex_r, trails_r)
 
-        trials_r = size_reduce(trials_r)
+        trails_r = size_reduce(trails_r)
 
         time_endi = time.time()
         time_usedi = str(time_endi - time_starti)
-        write_file(filename, i, len(trials_r), trials_r, time_usedi)
+        write_file(filename, i, len(trails_r), trails_r, time_usedi)
 
     time_end = time.time()
     time_used = str(time_end - time_start)

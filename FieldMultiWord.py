@@ -119,7 +119,7 @@ class FieldMultiWord:
         m = gp.read(self.filename_model)
         counter = 0
         set_zero = []
-        MILP_trials = []
+        MILP_trails = []
         global_flag = False
         while counter < self.word_num:
             m.optimize()
@@ -131,7 +131,7 @@ class FieldMultiWord:
                     name = v.getAttr('VarName')
                     valu = v.getAttr('x')
                     MILP_trial.append(name + ' = ' + str(valu))
-                MILP_trials.append(MILP_trial)
+                MILP_trails.append(MILP_trial)
                 obj = m.getObjective()
                 if obj.getValue() > 1:
                     global_flag = True
@@ -170,9 +170,9 @@ class FieldMultiWord:
         for u in set_zero:
             fileobj.write(u)
             fileobj.write("\n")
-        fileobj.write("The division trials is : \n")
-        for index, Mi in enumerate(MILP_trials):
-            fileobj.write("The division trials [%i] :\n" % index)
+        fileobj.write("The division trails is : \n")
+        for index, Mi in enumerate(MILP_trails):
+            fileobj.write("The division trails [%i] :\n" % index)
             for v in Mi:
                 fileobj.write(v + '\n')
             # fileobj.write("\n")

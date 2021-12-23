@@ -287,7 +287,7 @@ class MultiBit:
         m.setParam("IntFeasTol", 1e-6)
         counter = 0
         set_zero = []
-        MILP_trials = []
+        MILP_trails = []
         global_flag = False
         while counter < self.block_size:
             m.optimize()
@@ -299,7 +299,7 @@ class MultiBit:
                     name = v.getAttr('VarName')
                     valu = v.getAttr('x')
                     MILP_trial.append(name + ' = ' + str(valu))
-                MILP_trials.append(MILP_trial)
+                MILP_trails.append(MILP_trial)
                 obj = m.getObjective()
                 if obj.getValue() > 1:
                     global_flag = True
@@ -338,9 +338,9 @@ class MultiBit:
         for u in set_zero:
             file_obj.write(u)
             file_obj.write("\n")
-        file_obj.write("The division trials is : \n")
-        for index, Mi in enumerate(MILP_trials):
-            file_obj.write("The division trials [%i] :\n" % index)
+        file_obj.write("The division trails is : \n")
+        for index, Mi in enumerate(MILP_trails):
+            file_obj.write("The division trails [%i] :\n" % index)
             for v in Mi:
                 file_obj.write(v + '\n')
             # file_obj.write("\n")

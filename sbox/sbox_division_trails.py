@@ -1,4 +1,4 @@
-#  create the division trials of LowMC SBox
+#  create the division trails of LowMC SBox
 
 from sbox.process_sbox import Sbox
 import time
@@ -25,7 +25,7 @@ print(dict)
 '''
 
 
-def createDivisionTrials():
+def createDivisionTrails():
     cipher_example = "LowMC_sbox"
     # {0: [0, 0, 0], 1: [0, 0, 1], 2: [0, 1, 1], 3: [1, 1, 0], 4: [1, 1, 1], 5: [1, 0, 0], 6: [1, 0, 1], 7: [0, 1, 0]}
     sbox = [0x0, 0x1, 0x3, 0x6, 0x7, 0x4, 0x5, 0x2]
@@ -38,4 +38,4 @@ def createDivisionTrials():
 
 
 if __name__ == "__main__":
-    createDivisionTrials()
+    createDivisionTrails()

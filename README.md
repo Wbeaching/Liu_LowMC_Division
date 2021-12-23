@@ -1,5 +1,5 @@
 # Liu_LowMC_Division
-1. sbox_divisiontrials.py
+1. sbox_division_trails.py
     output: LowMC_DivisionTrails.txt
     
 2. sbox_MILP.sage

@@ -4,39 +4,20 @@ import time
 
 class FeistelMultiBit:
     def __init__(self, block_size, round, input_DP, filename_model, filename_result):
-        self.block_size = block_size    #128
-        self.grp_block_size = int(block_size / 4)   #32
-        self.word_size = int(self.grp_block_size / 4)    #8
+        self.block_size = block_size  # 128
+        self.grp_block_size = int(block_size / 4)  # 32
+        self.word_size = int(self.grp_block_size / 4)  # 8
         self.round_num = round
         self.input_dp = input_DP
         self.file_model = filename_model
         self.file_result = filename_result
 
-    ANF_st = [[['s0', 't0'], ['s1', 't7'], ['s2', 't6'], ['s3', 't5'], ['s4', 't4'], ['s5', 't3'], ['s5', 't7'],
-               ['s6', 't2'], ['s6', 't6'], ['s6', 't7'], ['s7', 't1'], ['s7', 't5'], ['s7', 't6']],
-              [['s0', 't1'], ['s1', 't0'], ['s1', 't7'], ['s2', 't6'], ['s2', 't7'], ['s3', 't5'], ['s3', 't6'],
-               ['s4', 't4'], ['s4', 't5'], ['s5', 't3'], ['s5', 't4'], ['s5', 't7'], ['s6', 't2'], ['s6', 't3'],
-               ['s6', 't6'], ['s7', 't1'], ['s7', 't2'], ['s7', 't5'], ['s7', 't7']],
-              [['s0', 't2'], ['s1', 't1'], ['s2', 't0'], ['s2', 't7'], ['s3', 't6'], ['s3', 't7'], ['s4', 't5'],
-               ['s4', 't6'], ['s5', 't4'], ['s5', 't5'], ['s6', 't3'], ['s6', 't4'], ['s6', 't7'], ['s7', 't2'],
-               ['s7', 't3'], ['s7', 't6']],
-              [['s0', 't3'], ['s1', 't2'], ['s1', 't7'], ['s2', 't1'], ['s2', 't6'], ['s3', 't0'], ['s3', 't5'],
-               ['s3', 't7'], ['s4', 't4'], ['s4', 't6'], ['s4', 't7'], ['s5', 't3'], ['s5', 't5'], ['s5', 't6'],
-               ['s5', 't7'], ['s6', 't2'], ['s6', 't4'], ['s6', 't5'], ['s6', 't6'], ['s6', 't7'], ['s7', 't1'],
-               ['s7', 't3'], ['s7', 't4'], ['s7', 't5'], ['s7', 't6'], ['s7', 't7']],
-              [['s0', 't4'], ['s1', 't3'], ['s1', 't7'], ['s2', 't2'], ['s2', 't6'], ['s2', 't7'], ['s3', 't1'],
-               ['s3', 't5'], ['s3', 't6'], ['s4', 't0'], ['s4', 't4'], ['s4', 't5'], ['s4', 't7'], ['s5', 't3'],
-               ['s5', 't4'], ['s5', 't6'], ['s6', 't2'], ['s6', 't3'], ['s6', 't5'], ['s7', 't1'], ['s7', 't2'],
-               ['s7', 't4'], ['s7', 't7']],
-              [['s0', 't5'], ['s1', 't4'], ['s2', 't3'], ['s2', 't7'], ['s3', 't2'], ['s3', 't6'], ['s3', 't7'],
-               ['s4', 't1'], ['s4', 't5'], ['s4', 't6'], ['s5', 't0'], ['s5', 't4'], ['s5', 't5'], ['s5', 't7'],
-               ['s6', 't3'], ['s6', 't4'], ['s6', 't6'], ['s7', 't2'], ['s7', 't3'], ['s7', 't5']],
-              [['s0', 't6'], ['s1', 't5'], ['s2', 't4'], ['s3', 't3'], ['s3', 't7'], ['s4', 't2'], ['s4', 't6'],
-               ['s4', 't7'], ['s5', 't1'], ['s5', 't5'], ['s5', 't6'], ['s6', 't0'], ['s6', 't4'], ['s6', 't5'],
-               ['s6', 't7'], ['s7', 't3'], ['s7', 't4'], ['s7', 't6']],
-              [['s0', 't7'], ['s1', 't6'], ['s2', 't5'], ['s3', 't4'], ['s4', 't3'], ['s4', 't7'], ['s5', 't2'],
-               ['s5', 't6'], ['s5', 't7'], ['s6', 't1'], ['s6', 't5'], ['s6', 't6'], ['s7', 't0'], ['s7', 't4'],
-               ['s7', 't5'], ['s7', 't7']]]
+    ANF_st = [
+        [['s0', 't0'], ['s1', 't3'], ['s2', 't2'], ['s3', 't1']],
+        [['s0', 't1'], ['s1', 't0'], ['s1', 't3'], ['s2', 't2'], ['s2', 't3'], ['s3', 't1'], ['s3', 't2']],
+        [['s0', 't2'], ['s1', 't1'], ['s2', 't0'], ['s2', 't3'], ['s3', 't2'], ['s3', 't3']],
+        [['s0', 't3'], ['s1', 't2'], ['s2', 't1'], ['s3', 't0'], ['s3', 't3']]
+    ]
 
     def create_ANF_map_and_indexw(self):
         ANF_map = {}
@@ -207,10 +188,12 @@ class FeistelMultiBit:
         mid_all = []
         for i in range(self.word_size):
             si = 's' + str(i)
-            mid_all.append(['f%i_' % step + 'g%i_' % group + si + '_%i' % round + '_%i' % i for i in range(ANF_map.get(si) + 1)])
+            mid_all.append(
+                ['f%i_' % step + 'g%i_' % group + si + '_%i' % round + '_%i' % i for i in range(ANF_map.get(si) + 1)])
         for i in range(self.word_size):
             ti = 't' + str(i)
-            mid_all.append(['f%i_' % step + 'g%i_' % group + ti + '_%i' % round + '_%i' % i for i in range(ANF_map.get(ti) + 1)])
+            mid_all.append(
+                ['f%i_' % step + 'g%i_' % group + ti + '_%i' % round + '_%i' % i for i in range(ANF_map.get(ti) + 1)])
         file_obj = open(self.file_model, "a")
         # file_obj.write('[BEGIN]  Multi in [group_%i], [round_%i], [step_%i]!! [BEGIN]\n' % (round, group, step))
         for ieq in zip(mid_varx + mid_vary, mid_all):
@@ -227,7 +210,8 @@ class FeistelMultiBit:
         index_w = 0
         eqn_z = []
         for wi, zi in zip(ANF_st_round, mid_varz):
-            vars_wi = ['f%i_' % step + 'g%i_' % group + 'w' + '_%i' % round + '_%i' % i for i in range(index_w, len(wi[0]) + index_w)]
+            vars_wi = ['f%i_' % step + 'g%i_' % group + 'w' + '_%i' % round + '_%i' % i for i in
+                       range(index_w, len(wi[0]) + index_w)]
             index_w = len(wi[0]) + index_w
             vars_si = wi[0]
             vars_ti = wi[1]
@@ -264,7 +248,7 @@ class FeistelMultiBit:
             group = 0
             # copy : x_0_0 -- a_0_0, x_1_4
             xi_vars0 = self.create_state_var('x', rnd, group)
-            yi_vars3 = self.create_state_var('x', rnd+1, group+3)
+            yi_vars3 = self.create_state_var('x', rnd + 1, group + 3)
             a_vars = self.create_state_var('a', rnd, group)
             self.constraint_copy(xi_vars0, yi_vars3, a_vars)
             # round function = 4 sbox, input = a, output = e
@@ -355,13 +339,15 @@ class FeistelMultiBit:
                         file_obj.write("\n")
                     for k in range(self.word_size):
                         si = 's' + str(k)
-                        tmp = ['f%i_' % step + 'g%i_' % group + si + '_%i' % ro + '_%i' % t for t in range(ANF_map.get(si) + 1)]
+                        tmp = ['f%i_' % step + 'g%i_' % group + si + '_%i' % ro + '_%i' % t for t in
+                               range(ANF_map.get(si) + 1)]
                         for j in tmp:
                             file_obj.write(j)
                             file_obj.write("\n")
                     for k in range(self.word_size):
                         ti = 't' + str(k)
-                        tmp = ['f%i_' % step + 'g%i_' % group + ti + '_%i' % ro + '_%i' % t for t in range(ANF_map.get(ti) + 1)]
+                        tmp = ['f%i_' % step + 'g%i_' % group + ti + '_%i' % ro + '_%i' % t for t in
+                               range(ANF_map.get(ti) + 1)]
                         for j in tmp:
                             file_obj.write(j)
                             file_obj.write("\n")
@@ -476,13 +462,12 @@ class FeistelMultiBit:
 
 
 if __name__ == "__main__":
-    block_size = 128
-    input_DP = "11111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111110"
-    activebits = 31
-    rounds = 12
+    block_size = 64
+    input_DP = "1111111111111111111111111111111111111111111111111111111111111110"
+    rounds = 1
 
-    filename_model = 'Feistel_Bit%i_%i_model.lp' % (rounds, activebits)
-    filename_result = "Feistel_Bit%i_%i_result.txt" % (rounds, activebits)
+    filename_model = 'Feistel_64Bit%i_model.lp' % (rounds)
+    filename_result = "Feistel_64Bit%i_result.txt" % (rounds)
     file_r = open(filename_result, "w+")
     file_r.close()
     fm = FeistelMultiBit(block_size, rounds, input_DP, filename_model, filename_result)
