@@ -389,7 +389,7 @@ class FeistelMultiBit_2multi:
         time_start = time.time()
         m = gp.read(self.file_model)
         # 设置整数精度
-        m.setParam("IntFeasTol", 1e-7)
+        m.setParam("IntFeasTol", 1e-8)
         counter = 0
         set_zero = []
         MILP_trails = []
@@ -443,16 +443,17 @@ class FeistelMultiBit_2multi:
         for u in set_zero:
             file_obj.write(u)
             file_obj.write("\n")
-        file_obj.write("The division trails is : \n")
-        for index, Mi in enumerate(MILP_trails):
-            file_obj.write("The division trails [%i] :\n" % index)
-            for v in Mi:
-                file_obj.write(v + '\n')
+        # file_obj.write("The division trails is : \n")
+        # for index, Mi in enumerate(MILP_trails):
+        #     file_obj.write("The division trails [%i] :\n" % index)
+        #     for v in Mi:
+        #         file_obj.write(v + '\n')
             # file_obj.write("\n")
         file_obj.write("\n")
         time_end = time.time()
         file_obj.write(("Time used = " + str(time_end - time_start)))
         file_obj.close()
+        return len(set_zero)
 
     def write_obj(self, obj):
         """
@@ -477,16 +478,30 @@ class FeistelMultiBit_2multi:
 
 if __name__ == "__main__":
     block_size = 128
-    input_DP = "11111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111110"
-    activebits = 31
-    rounds = 23
+    len_zero=[]
+    for active_point in range(block_size):
+        vector = ['1'] * block_size
+        vector[active_point] = '0'
+        input_DP = ''.join(vector)
+    # input_DP = "11111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111110"
+    # active_point = 31
+        rounds = 22
 
-    filename_model = 'v2-Feistel_Bit%i_%i_model.lp' % (rounds, activebits)
-    filename_result = "v2-Feistel_Bit%i_%i_result.txt" % (rounds, activebits)
+        filename_model = 'v2-Feistel_Bit_r_%i_%i_model.lp' % (rounds, active_point)
+        filename_result = "v2-Feistel_Bit_r_%i_%i_result.txt" % (rounds, active_point)
+        file_r = open(filename_result, "w+")
+        file_r.close()
+        fm = FeistelMultiBit_2multi(block_size, rounds, input_DP, filename_model, filename_result)
+        # 最左边为最低位
+        # Anf_m, index_w = fm.create_ANF_map_and_indexw()
+        fm.create_model(input_DP)
+        zero_ = fm.solve_model()
+        len_zero.append('active_point = %i, len of zero = %i' % (active_point, zero_))
+
+    filename_result = "length_v2-Feistel_Bit%i_allresult.txt" % (rounds)
     file_r = open(filename_result, "w+")
+    for i in len_zero:
+        file_r.write(i)
+        file_r.write('\n')
     file_r.close()
-    fm = FeistelMultiBit_2multi(block_size, rounds, input_DP, filename_model, filename_result)
-    # 最左边为最低位
-    # Anf_m, index_w = fm.create_ANF_map_and_indexw()
-    fm.create_model(input_DP)
-    fm.solve_model()
+
