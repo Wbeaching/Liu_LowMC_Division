@@ -1,6 +1,9 @@
 venv
-/.idea
+.idea
 *.txt
 *.lp
 *.gitignore
 /__pycache__
+/back
+/FieldMultiplication/result
+__pycache__
