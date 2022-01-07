@@ -4,8 +4,8 @@ import os
 
 '''
     MILP bit division
-    分组长度为128bit
-    4分支广义feistel结构，每分枝32bit
+    分组长度为64bit
+    2分支feistel结构，每分枝32bit
     分支轮函数32=4*8 循环四次8bit域乘
 '''
 

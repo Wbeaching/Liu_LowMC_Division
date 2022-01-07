@@ -7,8 +7,9 @@ from FieldMultiplication.Feistel4_Multi4_Bit128 import FeistelMultiBit
 def find_bit_integral_distinguisher(block_size, rounds, cipher_name, CIPHER_CLASS_NAME):
 
     filepath = 'result/' + cipher_name + '_R%i/' % (rounds)
+
     len_zero = []
-    for active_point in range(6, block_size):
+    for active_point in range(block_size):
     # for active_point in range(1):
         vector = ['1'] * block_size
         vector[active_point] = '0'
@@ -16,8 +17,8 @@ def find_bit_integral_distinguisher(block_size, rounds, cipher_name, CIPHER_CLAS
 
         filename_model = filepath + cipher_name + '_R%i_A%i_model.lp' % (rounds, active_point)
         filename_result = filepath + cipher_name + '_R%i_A%i_result.txt' % (rounds, active_point)
-        file_r = open(filename_result, "w+")
-        file_r.close()
+        # file_r = open(filename_result, "w+")
+        # file_r.close()
         fm = CIPHER_CLASS_NAME(block_size, rounds, input_DP, filename_model, filename_result)
         # 最左边为最低位
         fm.create_model(input_DP)
@@ -33,6 +34,6 @@ def find_bit_integral_distinguisher(block_size, rounds, cipher_name, CIPHER_CLAS
 
 
 block_size = 64
-rounds = 11
+rounds = 10
 cipher_name = 'Feistel2_Bit64'
 find_bit_integral_distinguisher(block_size, rounds, cipher_name, Feistel2Multi4Bit64)
