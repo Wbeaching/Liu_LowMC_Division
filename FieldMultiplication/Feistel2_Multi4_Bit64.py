@@ -1,5 +1,6 @@
 import gurobipy as gp
 import time
+import os
 
 '''
     MILP bit division
@@ -20,6 +21,9 @@ class Feistel2Multi4Bit64:
         self.input_dp = input_DP
         self.file_model = filename_model
         self.file_result = filename_result
+        f_path, f_name = os.path.split(filename_model)
+        if not os.path.exists(f_path):
+            os.makedirs(f_path)
 
     ANF_st = [[['s0', 't0'], ['s1', 't7'], ['s2', 't6'], ['s3', 't5'], ['s4', 't4'], ['s5', 't3'], ['s5', 't7'],
                ['s6', 't2'], ['s6', 't6'], ['s6', 't7'], ['s7', 't1'], ['s7', 't5'], ['s7', 't6']],
@@ -272,10 +276,10 @@ class Feistel2Multi4Bit64:
         for rnd in range(self.round_num):
             group = 0
             # copy : x_0_0 -- a_0_0, x_1_4
-            xi_vars0 = self.create_state_var('x', rnd, group)
-            yi_vars3 = self.create_state_var('x', rnd+1, group+3)
+            xi_vars0 = self.create_state_var('x', rnd, group=0)
+            yi_vars1 = self.create_state_var('x', rnd+1, group=1)
             a_vars = self.create_state_var('a', rnd, group)
-            self.constraint_copy(xi_vars0, yi_vars3, a_vars)
+            self.constraint_copy(xi_vars0, yi_vars1, a_vars)
             # round function = 4 sbox, input = a, output = e
             b_vars = self.create_state_var('b', rnd, group)
             c_vars = self.create_state_var('c', rnd, group)
@@ -291,34 +295,9 @@ class Feistel2Multi4Bit64:
             self.create_sbox(rnd, step, d_vars, e_vars, group)
 
             group = 1
-            xi_vars1 = self.create_state_var('x', rnd, group)
-            yi_vars0 = self.create_state_var('x', rnd + 1, 0)
+            xi_vars1 = self.create_state_var('x', rnd, group=1)
+            yi_vars0 = self.create_state_var('x', rnd + 1, group=0)
             self.constraint_xor2(xi_vars1, e_vars, yi_vars0)
-
-            group = 2
-            xi_vars2 = self.create_state_var('x', rnd, group)
-            yi_vars1 = self.create_state_var('x', rnd + 1, 1)
-
-            a_vars_2 = self.create_state_var('a', rnd, group)
-            self.constraint_copy(xi_vars2, yi_vars1, a_vars_2)
-            # fi = 4 sbox
-            b_vars_2 = self.create_state_var('b', rnd, group)
-            c_vars_2 = self.create_state_var('c', rnd, group)
-            d_vars_2 = self.create_state_var('d', rnd, group)
-            e_vars_2 = self.create_state_var('e', rnd, group)
-            step = 0
-            self.create_sbox(rnd, step, a_vars_2, b_vars_2, group)
-            step = 1
-            self.create_sbox(rnd, step, b_vars_2, c_vars_2, group)
-            step = 2
-            self.create_sbox(rnd, step, c_vars_2, d_vars_2, group)
-            step = 3
-            self.create_sbox(rnd, step, d_vars_2, e_vars_2, group)
-
-            group = 3
-            xi_vars3 = self.create_state_var('x', rnd, group)
-            yi_vars2 = self.create_state_var('x', rnd + 1, 2)
-            self.constraint_xor2(xi_vars3, e_vars_2, yi_vars2)
 
     def create_binary(self, ANF_map, index_w):
         """
@@ -387,9 +366,9 @@ class Feistel2Multi4Bit64:
     def create_model(self, inputDP):
         self.create_target_fn()
         self.input_init(inputDP)
-        # self.create_round_fn()
+        self.create_round_fn()
         ANF_map, index_w = self.create_ANF_map_and_indexw()
-        # self.create_binary(ANF_map, index_w)
+        self.create_binary(ANF_map, index_w)
 
     def solve_model(self):
         """
@@ -415,7 +394,7 @@ class Feistel2Multi4Bit64:
                     MILP_trial.append(name + ' = ' + str(valu))
                 MILP_trails.append(MILP_trial)
                 obj = m.getObjective()
-                if obj.getValue() > 1:
+                if round(obj.getValue()) > 1:
                     global_flag = True
                     break
 
@@ -426,7 +405,7 @@ class Feistel2Multi4Bit64:
                     self.write_obj(obj)
                     for i in range(0, self.block_size):
                         u = obj.getVar(i)
-                        temp = u.getAttr('x')
+                        temp = round(u.getAttr('x'))
                         if temp == 1:
                             set_zero.append(u.getAttr('VarName'))
                             u.ub = 0
@@ -484,38 +463,4 @@ class Feistel2Multi4Bit64:
             file_obj.write("\n")
         file_obj.close()
 
-
-if __name__ == "__main__":
-    # block_size = 128
-    # input_DP = "11111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111110"
-    # activebits = 31
-    # rounds = 12
-
-    block_size = 128
-    len_zero = []
-    for active_point in range(block_size):
-        vector = ['1'] * block_size
-        vector[active_point] = '0'
-        input_DP = ''.join(vector)
-        # input_DP = "11111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111110"
-        # active_point = 31
-        rounds = 14
-
-        filename_model = 'Feistel_Bit%i_%i_model.lp' % (rounds, active_point)
-        filename_result = "Feistel_Bit%i_%i_result.txt" % (rounds, active_point)
-        file_r = open(filename_result, "w+")
-        file_r.close()
-        fm = FeistelMultiBit(block_size, rounds, input_DP, filename_model, filename_result)
-        # 最左边为最低位
-        # Anf_m, index_w = fm.create_ANF_map_and_indexw()
-        fm.create_model(input_DP)
-        zero_ = fm.solve_model()
-        len_zero.append('active_point = %i, len of zero = %i' % (active_point, zero_))
-
-    filename_result = "---Feistel_Bit%i_allresult.txt" % (rounds)
-    file_r = open(filename_result, "w+")
-    for i in len_zero:
-        file_r.write(i)
-        file_r.write('\n')
-    file_r.close()
 
