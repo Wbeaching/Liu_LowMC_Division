@@ -2,10 +2,11 @@ import gurobipy as gp
 import time
 
 
-class MultiBit:
+class FeistelMultiBit_2multi:
     def __init__(self, block_size, round, input_DP, filename_model, filename_result):
-        self.block_size = block_size
-        self.word_size = int(block_size / 4)
+        self.block_size = block_size    #128
+        self.grp_block_size = int(block_size / 4)   #32
+        self.word_size = int(self.grp_block_size / 4)    #8
         self.round_num = round
         self.input_dp = input_DP
         self.file_model = filename_model
@@ -56,10 +57,11 @@ class MultiBit:
                 ANF_map[right] = right_n
         return ANF_map, index_w
 
-    def create_state_var(self, x, r):
+    def create_state_var(self, x, r, group):
         # return [x_r_0, x_r_1, x_r_2, ....]
         state = []
-        for iByte in range(self.block_size):
+        start = group * self.grp_block_size
+        for iByte in range(start, start + self.grp_block_size):
             state.append(x + '_%i' % r + '_%i' % iByte)
         return state
 
@@ -70,7 +72,9 @@ class MultiBit:
         """
         file_obj = open(self.file_model, "w+")
         file_obj.write("Minimize\n")
-        output_var = self.create_state_var('x', self.round_num)
+        output_var = []
+        for group in range(4):
+            output_var += self.create_state_var('x', self.round_num, group)
         file_obj.write(' + '.join(output_var) + '\n')
         file_obj.close()
 
@@ -78,7 +82,9 @@ class MultiBit:
         """
         Generate constraints by the initial division property.
         """
-        in_vars = self.create_state_var('x', 0)
+        in_vars = []
+        for group in range(4):
+            in_vars += self.create_state_var('x', 0, group)
         constraints = ['%s = %s' % (a, b) for a, b in zip(in_vars, inputDP)]
         file_obj = open(self.file_model, "a")
         file_obj.write('Subject To\n')
@@ -101,7 +107,7 @@ class MultiBit:
             file_obj.write("\n")
         file_obj.close()
 
-    def constraint_xor(self, s, t, w, x_out):
+    def constraint_xor3(self, s, t, w, x_out):
         """
         Generate the constraints by Xor operation.
         s xor t xor w = x_out
@@ -114,6 +120,24 @@ class MultiBit:
             eqn.append(s[i])
             eqn.append(t[i])
             eqn.append(w[i])
+            temp = " - ".join(eqn)
+            temp = temp + " = " + str(0)
+            file_obj.write(temp)
+            file_obj.write("\n")
+        file_obj.close()
+
+    def constraint_xor2(self, s, t, x_out):
+        """
+        Generate the constraints by Xor operation.
+        s xor t = x_out
+        xout - s - t = 0
+        """
+        file_obj = open(self.file_model, "a")
+        for i in range(0, len(x_out)):
+            eqn = []
+            eqn.append(x_out[i])
+            eqn.append(s[i])
+            eqn.append(t[i])
             temp = " - ".join(eqn)
             temp = temp + " = " + str(0)
             file_obj.write(temp)
@@ -148,7 +172,7 @@ class MultiBit:
                 state.append(iByte[1] + '_%i' % r + '_%i' % i)
         return state
 
-    def constraint_multi(self, round):
+    def constraint_fi(self, round, step, group, z_vars):
         # z0 * z1 = z3
         # x ---> s[0]
         # mid_num = [8, 11, 14, 17, 20, 24, 27, 30]
@@ -172,26 +196,27 @@ class MultiBit:
                     right_n = ANF_map.get(right) + 1
                 ANF_map[left] = left_n
                 ANF_map[right] = right_n
-                vars_si.append(left + '_%i' % round + '_%i' % left_n)
-                vars_ti.append(right + '_%i' % round + '_%i' % right_n)
+                vars_si.append('f%i_' % step + 'g%i_' % group + left + '_%i' % round + '_%i' % left_n)
+                vars_ti.append('f%i_' % step + 'g%i_' % group + right + '_%i' % round + '_%i' % right_n)
             ANF_st_round.append([vars_si, vars_ti])
 
         # 1. write copy in ANF
-        mid_varx = ['z' + '_%i' % round + '_%i' % i for i in range(self.word_size)]
-        mid_vary = ['z' + '_%i' % round + '_%i' % i for i in range(self.word_size, self.word_size * 2)]
-        mid_varz = ['z' + '_%i' % round + '_%i' % i for i in range(self.word_size * 3, self.word_size * 4)]
+        mid_varx = z_vars[:self.word_size]
+        mid_vary = z_vars[self.word_size: self.word_size * 2]
+        mid_varz = z_vars[self.word_size * 3:self.word_size * 4]
         mid_all = []
         for i in range(self.word_size):
             si = 's' + str(i)
-            mid_all.append([si + '_%i' % round + '_%i' % i for i in range(ANF_map.get(si) + 1)])
+            mid_all.append(['f%i_' % step + 'g%i_' % group + si + '_%i' % round + '_%i' % i for i in range(ANF_map.get(si) + 1)])
         for i in range(self.word_size):
             ti = 't' + str(i)
-            mid_all.append([ti + '_%i' % round + '_%i' % i for i in range(ANF_map.get(ti) + 1)])
+            mid_all.append(['f%i_' % step + 'g%i_' % group + ti + '_%i' % round + '_%i' % i for i in range(ANF_map.get(ti) + 1)])
         file_obj = open(self.file_model, "a")
+        # file_obj.write('[BEGIN]  Multi in [group_%i], [round_%i], [step_%i]!! [BEGIN]\n' % (round, group, step))
         for ieq in zip(mid_varx + mid_vary, mid_all):
             eqn = [ieq[0]]  # z_r_0
             for i in ieq[1]:
-                eqn.append(i)  # a0_r_1
+                eqn.append(i)  # s0_r_1
             temp = " - ".join(eqn)
             temp = temp + " = " + str(0)
             file_obj.write(temp)
@@ -202,12 +227,12 @@ class MultiBit:
         index_w = 0
         eqn_z = []
         for wi, zi in zip(ANF_st_round, mid_varz):
-            vars_wi = ['w' + '_%i' % round + '_%i' % i for i in range(index_w, len(wi[0]) + index_w)]
+            vars_wi = ['f%i_' % step + 'g%i_' % group + 'w' + '_%i' % round + '_%i' % i for i in range(index_w, len(wi[0]) + index_w)]
             index_w = len(wi[0]) + index_w
             vars_si = wi[0]
             vars_ti = wi[1]
             self.constraint_and(vars_si, vars_ti, vars_wi)
-            # zor in each line in ANF
+            # xor in each line in ANF
             eqn_zi = [zi]
             for i in vars_wi:
                 eqn_zi.append(i)  # w_r_i
@@ -218,55 +243,135 @@ class MultiBit:
         for ieq in eqn_z:
             file_obj.write(ieq)
             file_obj.write("\n")
+
+        # file_obj.write('[END] Multi in [group_%i], [round_%i], [step_%i]!! [END]\n' % (round, group, step))
         file_obj.close()
+
+    def create_sbox(self, rnd, step, in_vars, out_vars, group):
+        z_vars = self.create_state_var('f%i_' % step + 'z', rnd, group)
+        # 1. copy
+        word_s = self.word_size
+        self.constraint_copy(in_vars[word_s:], z_vars[:-word_s], out_vars[:-word_s])
+        # 2. z0*z1 = z3
+        # step = 0
+        self.constraint_fi(rnd, step, group, z_vars)
+        # 3. xor
+        self.constraint_xor3(in_vars[:word_s], z_vars[word_s * 2:word_s * 3], z_vars[-word_s:], out_vars[-word_s:])
 
     def create_round_fn(self):
         # 1/4 rounds
-        for i in range(self.round_num):
-            x_vars = self.create_state_var('x', i)
-            y_vars = self.create_state_var('x', i + 1)
-            z_vars = self.create_state_var('z', i)
-            # 1. copy
-            word_s = self.word_size
-            self.constraint_copy(x_vars[word_s:], z_vars[:-word_s], y_vars[:-word_s])
-            # 2. z0*z1 = z3
-            self.constraint_multi(i)
-            # 3. xor
-            self.constraint_xor(x_vars[:word_s], z_vars[word_s * 2:word_s * 3], z_vars[-word_s:], y_vars[-word_s:])
-            # mid_var = self.create_round_mid_var(0)
+        for rnd in range(self.round_num):
+            group = 0
+            # copy : x_0_0 -- a_0_0, x_1_4
+            xi_vars0 = self.create_state_var('x', rnd, group)
+            yi_vars3 = self.create_state_var('x', rnd+1, group+3)
+            a_vars = self.create_state_var('a', rnd, group)
+            self.constraint_copy(xi_vars0, yi_vars3, a_vars)
+            # round function = 4 sbox, input = a, output = e
+            b_vars = self.create_state_var('b', rnd, group)
+            c_vars = self.create_state_var('c', rnd, group)
+            # d_vars = self.create_state_var('d', rnd, group)
+            # e_vars = self.create_state_var('e', rnd, group)
+            step = 0
+            self.create_sbox(rnd, step, a_vars, b_vars, group)
+            step = 1
+            self.create_sbox(rnd, step, b_vars, c_vars, group)
+            # step = 2
+            # self.create_sbox(rnd, step, c_vars, d_vars, group)
+            # step = 3
+            # self.create_sbox(rnd, step, d_vars, e_vars, group)
+
+            group = 1
+            xi_vars1 = self.create_state_var('x', rnd, group)
+            yi_vars0 = self.create_state_var('x', rnd + 1, 0)
+            self.constraint_xor2(xi_vars1, c_vars, yi_vars0)
+
+            group = 2
+            xi_vars2 = self.create_state_var('x', rnd, group)
+            yi_vars1 = self.create_state_var('x', rnd + 1, 1)
+
+            a_vars_2 = self.create_state_var('a', rnd, group)
+            self.constraint_copy(xi_vars2, yi_vars1, a_vars_2)
+            # fi = 4 sbox
+            b_vars_2 = self.create_state_var('b', rnd, group)
+            c_vars_2 = self.create_state_var('c', rnd, group)
+            # d_vars_2 = self.create_state_var('d', rnd, group)
+            # e_vars_2 = self.create_state_var('e', rnd, group)
+            step = 0
+            self.create_sbox(rnd, step, a_vars_2, b_vars_2, group)
+            step = 1
+            self.create_sbox(rnd, step, b_vars_2, c_vars_2, group)
+            # step = 2
+            # self.create_sbox(rnd, step, c_vars_2, d_vars_2, group)
+            # step = 3
+            # self.create_sbox(rnd, step, d_vars_2, e_vars_2, group)
+
+            group = 3
+            xi_vars3 = self.create_state_var('x', rnd, group)
+            yi_vars2 = self.create_state_var('x', rnd + 1, 2)
+            self.constraint_xor2(xi_vars3, c_vars_2, yi_vars2)
 
     def create_binary(self, ANF_map, index_w):
         """
         Specify variable type.
         """
+        '''
+        all = 256 (x = 128, y = 128)
+        all0 = 2100
+            all = 517 (a = 32 , z = 32, s=8+11+14+17+20+24+27+30=151, t = 151, w = 151,  all = 517)
+            all = 517 (b)  
+            all = 517 (c)
+            all = 549 (d + e32) 
+        all2 = 2100
+        1 -round vars num = 4328 + 128(output)
+        '''
         file_obj = open(self.file_model, "a")
         file_obj.write("\n")
         file_obj.write("binaries\n")
         for ro in range(0, self.round_num):
-            for j in self.create_state_var('x', ro):
-                file_obj.write(j)
-                file_obj.write("\n")
-            for j in self.create_state_var('z', ro):
-                file_obj.write(j)
-                file_obj.write("\n")
-            for k in range(self.word_size):
-                si = 's' + str(k)
-                tmp = [si + '_%i' % ro + '_%i' % t for t in range(ANF_map.get(si) + 1)]
-                for j in tmp:
+            for group in range(4):
+                for j in self.create_state_var('x', ro, group):
                     file_obj.write(j)
                     file_obj.write("\n")
-            for k in range(self.word_size):
-                ti = 't' + str(k)
-                tmp = [ti + '_%i' % ro + '_%i' % t for t in range(ANF_map.get(ti) + 1)]
-                for j in tmp:
+            for group in [0, 2]:
+                for j in self.create_state_var('a', ro, group):
                     file_obj.write(j)
                     file_obj.write("\n")
-            for k in range(index_w):
-                file_obj.write('w' + '_%i' % ro + '_%i' % k)
+                for j in self.create_state_var('b', ro, group):
+                    file_obj.write(j)
+                    file_obj.write("\n")
+                for j in self.create_state_var('c', ro, group):
+                    file_obj.write(j)
+                    file_obj.write("\n")
+                # for j in self.create_state_var('d', ro, group):
+                #     file_obj.write(j)
+                #     file_obj.write("\n")
+                # for j in self.create_state_var('e', ro, group):
+                #     file_obj.write(j)
+                #     file_obj.write("\n")
+                for step in range(2):
+                    for j in self.create_state_var('f%i_' % step + 'z', ro, group):
+                        file_obj.write(j)
+                        file_obj.write("\n")
+                    for k in range(self.word_size):
+                        si = 's' + str(k)
+                        tmp = ['f%i_' % step + 'g%i_' % group + si + '_%i' % ro + '_%i' % t for t in range(ANF_map.get(si) + 1)]
+                        for j in tmp:
+                            file_obj.write(j)
+                            file_obj.write("\n")
+                    for k in range(self.word_size):
+                        ti = 't' + str(k)
+                        tmp = ['f%i_' % step + 'g%i_' % group + ti + '_%i' % ro + '_%i' % t for t in range(ANF_map.get(ti) + 1)]
+                        for j in tmp:
+                            file_obj.write(j)
+                            file_obj.write("\n")
+                    for k in range(index_w):
+                        file_obj.write('f%i_' % step + 'g%i_' % group + 'w' + '_%i' % ro + '_%i' % k)
+                        file_obj.write("\n")
+        for group in range(4):
+            for j in self.create_state_var('x', self.round_num, group):
+                file_obj.write(j)
                 file_obj.write("\n")
-        for j in self.create_state_var('x', self.round_num):
-            file_obj.write(j)
-            file_obj.write("\n")
         file_obj.write("END")
         file_obj.close()
 
@@ -284,7 +389,7 @@ class MultiBit:
         time_start = time.time()
         m = gp.read(self.file_model)
         # 设置整数精度
-        m.setParam("IntFeasTol", 1e-6)
+        m.setParam("IntFeasTol", 1e-8)
         counter = 0
         set_zero = []
         MILP_trails = []
@@ -338,16 +443,17 @@ class MultiBit:
         for u in set_zero:
             file_obj.write(u)
             file_obj.write("\n")
-        file_obj.write("The division trails is : \n")
-        for index, Mi in enumerate(MILP_trails):
-            file_obj.write("The division trails [%i] :\n" % index)
-            for v in Mi:
-                file_obj.write(v + '\n')
+        # file_obj.write("The division trails is : \n")
+        # for index, Mi in enumerate(MILP_trails):
+        #     file_obj.write("The division trails [%i] :\n" % index)
+        #     for v in Mi:
+        #         file_obj.write(v + '\n')
             # file_obj.write("\n")
         file_obj.write("\n")
         time_end = time.time()
         file_obj.write(("Time used = " + str(time_end - time_start)))
         file_obj.close()
+        return len(set_zero)
 
     def write_obj(self, obj):
         """
@@ -371,17 +477,31 @@ class MultiBit:
 
 
 if __name__ == "__main__":
-    block_size = 32
-    input_DP = "11111111111111111111111111111110"
-    activebits = 31
-    rounds = 16
+    block_size = 128
+    len_zero=[]
+    for active_point in range(block_size):
+        vector = ['1'] * block_size
+        vector[active_point] = '0'
+        input_DP = ''.join(vector)
+    # input_DP = "11111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111110"
+    # active_point = 31
+        rounds = 23
 
-    filename_model = 'Multi_bit_%i_%i_model.lp' % (rounds, activebits)
-    filename_result = "Multi_bit_%i_%i_result.txt" % (rounds, activebits)
+        filename_model = 'v2-Feistel_Bit_r_%i_%i_model.lp' % (rounds, active_point)
+        filename_result = "v2-Feistel_Bit_r_%i_%i_result.txt" % (rounds, active_point)
+        file_r = open(filename_result, "w+")
+        file_r.close()
+        fm = FeistelMultiBit_2multi(block_size, rounds, input_DP, filename_model, filename_result)
+        # 最左边为最低位
+        # Anf_m, index_w = fm.create_ANF_map_and_indexw()
+        fm.create_model(input_DP)
+        zero_ = fm.solve_model()
+        len_zero.append('active_point = %i, len of zero = %i' % (active_point, zero_))
+
+    filename_result = "length_v2-Feistel_Bit%i_allresult.txt" % (rounds)
     file_r = open(filename_result, "w+")
+    for i in len_zero:
+        file_r.write(i)
+        file_r.write('\n')
     file_r.close()
-    fm = MultiBit(block_size, rounds, input_DP, filename_model, filename_result)
-    # 最左边为最低位
-    # Anf_m, index_w = fm.create_ANF_map_and_indexw()
-    fm.create_model(input_DP)
-    fm.solve_model()
+

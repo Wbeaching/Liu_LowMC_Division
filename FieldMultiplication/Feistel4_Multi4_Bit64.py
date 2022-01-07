@@ -2,7 +2,14 @@ import gurobipy as gp
 import time
 
 
-class FeistelMultiBit:
+"""
+    MILP bit division
+    分组长度为64bit
+    4分支广义feistel结构，每分枝16bit
+    分支轮函数 16=4*4， 循环四次 4bit的域乘
+"""
+
+class Feistel4MultiBit:
     def __init__(self, block_size, round, input_DP, filename_model, filename_result):
         self.block_size = block_size  # 128
         self.grp_block_size = int(block_size / 4)  # 32
