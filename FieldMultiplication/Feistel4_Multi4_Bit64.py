@@ -1,6 +1,7 @@
+import os
+
 import gurobipy as gp
 import time
-
 
 """
     MILP bit division
@@ -9,15 +10,19 @@ import time
     分支轮函数 16=4*4， 循环四次 4bit的域乘
 """
 
-class Feistel4MultiBit:
+
+class Feistel4Multi4Bit64:
     def __init__(self, block_size, round, input_DP, filename_model, filename_result):
-        self.block_size = block_size  # 128
-        self.grp_block_size = int(block_size / 4)  # 32
-        self.word_size = int(self.grp_block_size / 4)  # 8
+        self.block_size = block_size  # 64
+        self.grp_block_size = int(block_size / 4)  # 16
+        self.word_size = int(self.grp_block_size / 4)  # 4
         self.round_num = round
         self.input_dp = input_DP
         self.file_model = filename_model
         self.file_result = filename_result
+        f_path, f_name = os.path.split(filename_model)
+        if not os.path.exists(f_path):
+            os.makedirs(f_path)
 
     ANF_st = [
         [['s0', 't0'], ['s1', 't3'], ['s2', 't2'], ['s3', 't1']],
@@ -148,17 +153,6 @@ class Feistel4MultiBit:
             file_obj.write(temp)
             file_obj.write("\n")
         file_obj.close()
-
-    def create_round_mid_var(self, r):
-        mid_num = [8, 11, 14, 17, 20, 24, 27, 30]
-        mid_varx = ['a', 'b', 'c', 'd', 'e', 'f', 'g', 'h']
-        min_vary = ['o', 'p', 'q', 'r', 's', 't', 'u', 'v']
-        state = []
-        for iByte in zip(mid_varx, min_vary, mid_num):
-            for i in range(iByte[2]):
-                state.append(iByte[0] + '_%i' % r + '_%i' % i)
-                state.append(iByte[1] + '_%i' % r + '_%i' % i)
-        return state
 
     def constraint_fi(self, round, step, group, z_vars):
         # z0 * z1 = z3
@@ -379,6 +373,9 @@ class Feistel4MultiBit:
         """
         Solve the MILP model to search the integral distinguisher.
         """
+        file_obj = open(self.file_result, "w+")
+        file_obj.write("Result!\n")
+        file_obj.close()
         time_start = time.time()
         m = gp.read(self.file_model)
         # 设置整数精度
@@ -399,7 +396,7 @@ class Feistel4MultiBit:
                     MILP_trial.append(name + ' = ' + str(valu))
                 MILP_trails.append(MILP_trial)
                 obj = m.getObjective()
-                if obj.getValue() > 1:
+                if round(obj.getValue()) > 1:
                     global_flag = True
                     break
 
@@ -411,7 +408,7 @@ class Feistel4MultiBit:
                     for i in range(0, self.block_size):
                         u = obj.getVar(i)
                         temp = u.getAttr('x')
-                        if temp == 1:
+                        if round(temp) == 1:
                             set_zero.append(u.getAttr('VarName'))
                             u.ub = 0
                             m.update()
@@ -446,6 +443,7 @@ class Feistel4MultiBit:
         time_end = time.time()
         file_obj.write(("Time used = " + str(time_end - time_start)))
         file_obj.close()
+        return len(set_zero)
 
     def write_obj(self, obj):
         """
@@ -468,17 +466,36 @@ class Feistel4MultiBit:
         file_obj.close()
 
 
+def find_bit_integral_distinguisher(block_size, rounds, cipher_name):
+    filepath = 'result/' + cipher_name + '_R%i/' % (rounds)
+
+    len_zero = []
+    for active_point in range(57, block_size):
+        # for active_point in range(1):
+        vector = ['1'] * block_size
+        vector[active_point] = '0'
+        input_DP = ''.join(vector)
+
+        filename_model = filepath + cipher_name + '_R%i_A%i_model.lp' % (rounds, active_point)
+        filename_result = filepath + cipher_name + '_R%i_A%i_result.txt' % (rounds, active_point)
+        # file_r = open(filename_result, "w+")
+        # file_r.close()
+        fm = Feistel4Multi4Bit64(block_size, rounds, input_DP, filename_model, filename_result)
+        # 最左边为最低位
+        fm.create_model(input_DP)
+        zero_ = fm.solve_model()
+        len_zero.append('active_point = %i, len of zero = %i' % (active_point, zero_))
+
+    filename_result = filepath + '---' + cipher_name + '----R%i_AllResult.txt' % (rounds)
+    file_r = open(filename_result, "w+")
+    for i in len_zero:
+        file_r.write(i)
+        file_r.write('\n')
+    file_r.close()
+
+
 if __name__ == "__main__":
     block_size = 64
-    input_DP = "1111111111111111111111111111111111111111111111111111111111111110"
-    rounds = 5
-
-    filename_model = 'Feistel_64Bit%i_model.lp' % (rounds)
-    filename_result = "Feistel_64Bit%i_result.txt" % (rounds)
-    file_r = open(filename_result, "w+")
-    file_r.close()
-    fm = FeistelMultiBit(block_size, rounds, input_DP, filename_model, filename_result)
-    # 最左边为最低位
-    # Anf_m, index_w = fm.create_ANF_map_and_indexw()
-    fm.create_model(input_DP)
-    fm.solve_model()
+    rounds = 13
+    cipher_name = 'Feistel4_Multi4_Bit64'
+    find_bit_integral_distinguisher(block_size, rounds, cipher_name)

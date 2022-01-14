@@ -1,8 +1,6 @@
-import os
-
-from FieldMultiplication.Feistel2_Multi4_Bit64 import Feistel2Multi4Bit64
-from FieldMultiplication.Feistel4_Multi4_Bit128 import FeistelMultiBit
-
+# import os
+from Feistel2_Multi4_Bit128 import Feistel2Multi4Bit128
+from Feistel2_Multi4_Bit64 import Feistel2Multi4Bit64
 
 def find_bit_integral_distinguisher(block_size, rounds, cipher_name, CIPHER_CLASS_NAME):
 
@@ -33,7 +31,7 @@ def find_bit_integral_distinguisher(block_size, rounds, cipher_name, CIPHER_CLAS
     file_r.close()
 
 
-block_size = 64
-rounds = 10
-cipher_name = 'Feistel2_Bit64'
-find_bit_integral_distinguisher(block_size, rounds, cipher_name, Feistel2Multi4Bit64)
+block_size = 128
+rounds = 12
+cipher_name = 'Feistel2_Multi4_Bit128'
+find_bit_integral_distinguisher(block_size, rounds, cipher_name, Feistel2Multi4Bit128)

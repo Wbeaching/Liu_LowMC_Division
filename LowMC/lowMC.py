@@ -133,6 +133,9 @@ class LowMC:
         """
         Solve the MILP model to search the integral distinguisher of Present.
         """
+        file_obj = open(self.filename_result, "w+")
+        file_obj.write("Result!\n")
+        file_obj.close()
         time_start = time.time()
         m = gp.read(self.filename_model)
         counter = 0
@@ -143,7 +146,7 @@ class LowMC:
             # Gurobi syntax: m.Status == 2 represents the model is feasible.
             if m.Status == 2:
                 obj = m.getObjective()
-                if obj.getValue() > 1:
+                if round(obj.getValue()) > 1:
                     global_flag = True
                     break
                 else:
@@ -153,7 +156,7 @@ class LowMC:
                     self.write_obj(obj)
                     for i in range(0, self.block_size):
                         u = obj.getVar(i)
-                        temp = u.getAttr('x')
+                        temp = round(u.getAttr('x'))
                         if temp == 1:
                             set_zero.append(u.getAttr('VarName'))
                             u.ub = 0

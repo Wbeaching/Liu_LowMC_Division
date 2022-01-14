@@ -1,21 +1,15 @@
-import gurobipy as gp
-import time
 import os
 
-'''
-    MILP bit division
-    分组长度为64bit
-    2分支feistel结构，每分枝32bit
-    分支轮函数32=4*8 循环四次8bit域乘
-'''
+import gurobipy as gp
+import time
 
-class Feistel2Multi4Bit64:
+from gurobipy import GRB
+
+
+class Feistel4Multi2Bit128:
     def __init__(self, block_size, round, input_DP, filename_model, filename_result):
-        self.block_size = block_size    #64
-        # Feistel 分支数
-        self.grp_size = 2
-        # 每个分支的bit数
-        self.grp_block_size = int(block_size / self.grp_size)   #32
+        self.block_size = block_size    #128
+        self.grp_block_size = int(block_size / 4)   #32
         self.word_size = int(self.grp_block_size / 4)    #8
         self.round_num = round
         self.input_dp = input_DP
@@ -86,7 +80,7 @@ class Feistel2Multi4Bit64:
         file_obj = open(self.file_model, "w+")
         file_obj.write("Minimize\n")
         output_var = []
-        for group in range(self.grp_size):
+        for group in range(4):
             output_var += self.create_state_var('x', self.round_num, group)
         file_obj.write(' + '.join(output_var) + '\n')
         file_obj.close()
@@ -96,7 +90,7 @@ class Feistel2Multi4Bit64:
         Generate constraints by the initial division property.
         """
         in_vars = []
-        for group in range(self.grp_size):
+        for group in range(4):
             in_vars += self.create_state_var('x', 0, group)
         constraints = ['%s = %s' % (a, b) for a, b in zip(in_vars, inputDP)]
         file_obj = open(self.file_model, "a")
@@ -276,28 +270,53 @@ class Feistel2Multi4Bit64:
         for rnd in range(self.round_num):
             group = 0
             # copy : x_0_0 -- a_0_0, x_1_4
-            xi_vars0 = self.create_state_var('x', rnd, group=0)
-            yi_vars1 = self.create_state_var('x', rnd+1, group=1)
+            xi_vars0 = self.create_state_var('x', rnd, group)
+            yi_vars3 = self.create_state_var('x', rnd+1, group+3)
             a_vars = self.create_state_var('a', rnd, group)
-            self.constraint_copy(xi_vars0, yi_vars1, a_vars)
+            self.constraint_copy(xi_vars0, yi_vars3, a_vars)
             # round function = 4 sbox, input = a, output = e
             b_vars = self.create_state_var('b', rnd, group)
             c_vars = self.create_state_var('c', rnd, group)
-            d_vars = self.create_state_var('d', rnd, group)
-            e_vars = self.create_state_var('e', rnd, group)
+            # d_vars = self.create_state_var('d', rnd, group)
+            # e_vars = self.create_state_var('e', rnd, group)
             step = 0
             self.create_sbox(rnd, step, a_vars, b_vars, group)
             step = 1
             self.create_sbox(rnd, step, b_vars, c_vars, group)
-            step = 2
-            self.create_sbox(rnd, step, c_vars, d_vars, group)
-            step = 3
-            self.create_sbox(rnd, step, d_vars, e_vars, group)
+            # step = 2
+            # self.create_sbox(rnd, step, c_vars, d_vars, group)
+            # step = 3
+            # self.create_sbox(rnd, step, d_vars, e_vars, group)
 
             group = 1
-            xi_vars1 = self.create_state_var('x', rnd, group=1)
-            yi_vars0 = self.create_state_var('x', rnd + 1, group=0)
-            self.constraint_xor2(xi_vars1, e_vars, yi_vars0)
+            xi_vars1 = self.create_state_var('x', rnd, group)
+            yi_vars0 = self.create_state_var('x', rnd + 1, 0)
+            self.constraint_xor2(xi_vars1, c_vars, yi_vars0)
+
+            group = 2
+            xi_vars2 = self.create_state_var('x', rnd, group)
+            yi_vars1 = self.create_state_var('x', rnd + 1, 1)
+
+            a_vars_2 = self.create_state_var('a', rnd, group)
+            self.constraint_copy(xi_vars2, yi_vars1, a_vars_2)
+            # fi = 4 sbox
+            b_vars_2 = self.create_state_var('b', rnd, group)
+            c_vars_2 = self.create_state_var('c', rnd, group)
+            # d_vars_2 = self.create_state_var('d', rnd, group)
+            # e_vars_2 = self.create_state_var('e', rnd, group)
+            step = 0
+            self.create_sbox(rnd, step, a_vars_2, b_vars_2, group)
+            step = 1
+            self.create_sbox(rnd, step, b_vars_2, c_vars_2, group)
+            # step = 2
+            # self.create_sbox(rnd, step, c_vars_2, d_vars_2, group)
+            # step = 3
+            # self.create_sbox(rnd, step, d_vars_2, e_vars_2, group)
+
+            group = 3
+            xi_vars3 = self.create_state_var('x', rnd, group)
+            yi_vars2 = self.create_state_var('x', rnd + 1, 2)
+            self.constraint_xor2(xi_vars3, c_vars_2, yi_vars2)
 
     def create_binary(self, ANF_map, index_w):
         """
@@ -317,11 +336,11 @@ class Feistel2Multi4Bit64:
         file_obj.write("\n")
         file_obj.write("binaries\n")
         for ro in range(0, self.round_num):
-            for group in range(self.grp_size):
+            for group in range(4):
                 for j in self.create_state_var('x', ro, group):
                     file_obj.write(j)
                     file_obj.write("\n")
-            for group in [0]:
+            for group in [0, 2]:
                 for j in self.create_state_var('a', ro, group):
                     file_obj.write(j)
                     file_obj.write("\n")
@@ -331,13 +350,13 @@ class Feistel2Multi4Bit64:
                 for j in self.create_state_var('c', ro, group):
                     file_obj.write(j)
                     file_obj.write("\n")
-                for j in self.create_state_var('d', ro, group):
-                    file_obj.write(j)
-                    file_obj.write("\n")
-                for j in self.create_state_var('e', ro, group):
-                    file_obj.write(j)
-                    file_obj.write("\n")
-                for step in range(4):
+                # for j in self.create_state_var('d', ro, group):
+                #     file_obj.write(j)
+                #     file_obj.write("\n")
+                # for j in self.create_state_var('e', ro, group):
+                #     file_obj.write(j)
+                #     file_obj.write("\n")
+                for step in range(2):
                     for j in self.create_state_var('f%i_' % step + 'z', ro, group):
                         file_obj.write(j)
                         file_obj.write("\n")
@@ -356,7 +375,7 @@ class Feistel2Multi4Bit64:
                     for k in range(index_w):
                         file_obj.write('f%i_' % step + 'g%i_' % group + 'w' + '_%i' % ro + '_%i' % k)
                         file_obj.write("\n")
-        for group in range(self.grp_size):
+        for group in range(4):
             for j in self.create_state_var('x', self.round_num, group):
                 file_obj.write(j)
                 file_obj.write("\n")
@@ -379,8 +398,18 @@ class Feistel2Multi4Bit64:
         file_obj.close()
         time_start = time.time()
         m = gp.read(self.file_model)
+
         # 设置整数精度
-        m.setParam("IntFeasTol", 1e-7)
+        m.setParam("IntFeasTol", 1e-8)
+        # Limit how many solutions to collect
+        m.setParam(GRB.Param.PoolSolutions, 1024)
+
+        # Limit the search space by setting a gap for the worst possible solution
+        # that will be accepted
+        m.setParam(GRB.Param.PoolGap, 0.1)
+
+        # do a systematic search for the k- best solutions
+        m.setParam(GRB.Param.PoolSearchMode, 2)
         counter = 0
         set_zero = []
         MILP_trails = []
@@ -409,7 +438,7 @@ class Feistel2Multi4Bit64:
                     for i in range(0, self.block_size):
                         u = obj.getVar(i)
                         temp = round(u.getAttr('x'))
-                        if round(temp) == 1:
+                        if round(temp) == 11:
                             set_zero.append(u.getAttr('VarName'))
                             u.ub = 0
                             m.update()
@@ -434,13 +463,13 @@ class Feistel2Multi4Bit64:
         for u in set_zero:
             file_obj.write(u)
             file_obj.write("\n")
-        # file_obj.write("The division trails is : \n")
-        # for index, Mi in enumerate(MILP_trails):
-        #     file_obj.write("The division trails [%i] :\n" % index)
-        #     for v in Mi:
-        #         file_obj.write(v + '\n')
-        #     # file_obj.write("\n")
-        # file_obj.write("\n")
+        file_obj.write("The division trails is : \n")
+        for index, Mi in enumerate(MILP_trails):
+            file_obj.write("The division trails [%i] :\n" % index)
+            for v in Mi:
+                file_obj.write(v + '\n')
+            file_obj.write("\n")
+        file_obj.write("\n")
         time_end = time.time()
         file_obj.write(("Time used = " + str(time_end - time_start)))
         file_obj.close()
@@ -467,3 +496,40 @@ class Feistel2Multi4Bit64:
         file_obj.close()
 
 
+
+
+def find_bit_integral_distinguisher(block_size, rounds, cipher_name, CIPHER_CLASS_NAME):
+
+    filepath = 'result/' + cipher_name + '_R%i/' % (rounds)
+
+    len_zero = []
+    for active_point in range(1, block_size):
+    # for active_point in range(1):
+        vector = ['1'] * block_size
+        vector[active_point] = '0'
+        input_DP = ''.join(vector)
+
+        filename_model = filepath + cipher_name + '_R%i_A%i_model.lp' % (rounds, active_point)
+        filename_result = filepath + cipher_name + '_R%i_A%i_result.txt' % (rounds, active_point)
+        # file_r = open(filename_result, "w+")
+        # file_r.close()
+        fm = CIPHER_CLASS_NAME(block_size, rounds, input_DP, filename_model, filename_result)
+        # 最左边为最低位
+        fm.create_model(input_DP)
+        zero_ = fm.solve_model()
+        len_zero.append('active_point = %i, len of zero = %i' % (active_point, zero_))
+
+    filename_result = filepath + '---' + cipher_name +'----R%i_AllResult.txt' % (rounds)
+    file_r = open(filename_result, "w+")
+    for i in len_zero:
+        file_r.write(i)
+        file_r.write('\n')
+    file_r.close()
+
+
+if __name__ == "__main__":
+
+    block_size = 128
+    rounds = 23
+    cipher_name = 'Feistel4_Multi2_Bit128'
+    find_bit_integral_distinguisher(block_size, rounds, cipher_name, Feistel4Multi2Bit128)

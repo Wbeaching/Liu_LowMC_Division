@@ -1,3 +1,5 @@
+import os
+
 import gurobipy as gp
 import time
 
@@ -17,6 +19,9 @@ class FeistelMultiWord:
         self.rounds = r
         self.file_model = file_model
         self.file_result = file_result
+        f_path, f_name = os.path.split(file_model)
+        if not os.path.exists(f_path):
+            os.makedirs(f_path)
 
     def create_state_var(self, x, r, group, num):
         # return [x_r_0, x_r_1, x_r_2, ....]
@@ -220,7 +225,7 @@ class FeistelMultiWord:
                     MILP_trial.append(name + ' = ' + str(valu))
                 MILP_trails.append(MILP_trial)
                 obj = m.getObjective()
-                if obj.getValue() > 1:
+                if round(obj.getValue()) > 1:
                     global_flag = True
                     break
 
@@ -232,7 +237,7 @@ class FeistelMultiWord:
                     for i in range(0, self.word_num * 4):
                         u = obj.getVar(i)
                         temp = u.getAttr('x')
-                        if temp == 1:
+                        if round(temp) == 1:
                             set_zero.append(u.getAttr('VarName'))
                             u.ub = 0
                             m.update()
@@ -267,6 +272,7 @@ class FeistelMultiWord:
         time_end = time.time()
         fileobj.write(("Time used = " + str(time_end - time_start)))
         fileobj.close()
+        return len(set_zero)
 
     def write_obj(self, obj):
         """
@@ -293,15 +299,25 @@ if __name__ == "__main__":
     # block size = 16*8 = 128
     word_num = 16
     input_DP = [4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 3]
-    # fn_word_num = word_num / 4
-    fn_word_num = 4
-    round_num = 1
-    activebits = 1
-    file_model = 'Feistel_Word64%i_model.lp' % (round_num)
-    file_result = "Feistel_Word64%i_result.txt" % (round_num)
-    file_obj = open(file_result, "w+")
-    file_obj.close()
-    lm = FeistelMultiWord(fn_word_num, round_num, file_model, file_result)
-    # 最左边为最低位
-    lm.create_model(input_DP)
-    lm.solve_model()
+    cipher_name = 'Feistel_Word64'
+    round_num = 8
+    len_zero = []
+    filepath = 'result/' + cipher_name + '_R%i/' % (round_num)
+    for active_point in range(word_num):
+        vector = ['4'] * word_num
+        vector[active_point] = '3'
+        input_DP = ''.join(vector)
+        fn_word_num = 4
+        file_model = filepath + 'Feistel_Word64_r%i_A%i_model.lp' % (round_num,active_point)
+        file_result = filepath + "Feistel_Word64_r%i_A%i_result.txt" % (round_num,active_point)
+        lm = FeistelMultiWord(fn_word_num, round_num, file_model, file_result)
+        # 最左边为最低位
+        lm.create_model(input_DP)
+        zero_ = lm.solve_model()
+        len_zero.append('active_point = %i, len of zero = %i' % (active_point, zero_))
+    filename_result = filepath + '---' + cipher_name +'----R%i_AllResult.txt' % (round_num)
+    file_r = open(filename_result, "w+")
+    for i in len_zero:
+        file_r.write(i)
+        file_r.write('\n')
+    file_r.close()
