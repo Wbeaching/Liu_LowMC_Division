@@ -329,8 +329,9 @@ class LowMCMILP:
 if __name__ == "__main__":
     block_size = 128
     len_zero = []
-    rounds = 44
+    rounds = 2
     filepath = 'result/LowMC_division_R%i/' % (rounds)
+    filename_all = filepath + '---LowMC_division----R%i_AllResult.txt' % (rounds)
     for active_point in range(1, block_size):
     # for active_point in range(1):
     #     active_point = 2
@@ -344,10 +345,8 @@ if __name__ == "__main__":
         fm = LowMCMILP(block_size, rounds, input_DP, filename_model, filename_result)
         fm.create_model(input_DP)
         zero_ = fm.solve_model()
-        len_zero.append('active_point = %i, len of zero = %i' % (active_point, zero_))
-    filename_all = filepath + '---LowMC_division----R%i_AllResult.txt' % (rounds)
-    file_r = open(filename_all, "w+")
-    for i in len_zero:
-        file_r.write(i)
+        # len_zero.append('active_point = %i, len of zero = %i' % (active_point, zero_))
+        file_r = open(filename_all, "a")
+        file_r.write('active_point = %i, len of zero = %i' % (active_point, zero_))
         file_r.write('\n')
-    file_r.close()
+        file_r.close()
