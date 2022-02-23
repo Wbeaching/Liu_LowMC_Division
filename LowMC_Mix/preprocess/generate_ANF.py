@@ -37,6 +37,7 @@ def anf(block_size, m, matrix_r):
     result = y * x
 
     filename = 'anf_of_sbox+linear-8.txt'
+	# filename = 'anf_of_sbox+linear-m_31-128.txt'
     obj = open(filename, 'w+')
     obj.close()
     for i in result:
@@ -68,7 +69,8 @@ if __name__ == "__main__":
     #     column_weigth.append((sum(matrix_r[:, i])))
     # print(column_weigth)
 
-    # anf(block_size=128, m=3, matrix_r=lowMC_constant.Matrix128)
-    anf(block_size=8, m=2, matrix_r=lowMC_constant.matrix_8)
+    anf(block_size=128, m=3, matrix_r=lowMC_constant.Matrix128)
+    # anf(block_size=8, m=2, matrix_r=lowMC_constant.matrix_8)
+	# anf(block_size=128, m=31, matrix_r=lowMC_constant.Matrix128)
 
 

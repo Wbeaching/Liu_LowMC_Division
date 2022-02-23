@@ -1,0 +1,2 @@
+结构重新组织，LowMC的分析代码主要放在LowMC——Mix中，以s盒个数和分组大小为文件夹名，每个实例中只有MILP主py文件。
+preprocess文件夹中为预先处理，caculator为一些小的计算工具，generate_ANF.py 根据参数生成每个实例的ANF
