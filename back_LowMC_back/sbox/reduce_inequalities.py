@@ -20,10 +20,10 @@ def simplify_ine(cipher):
 
 if __name__ == "__main__":
 
-    cipher = "LowMC_sbox"
+    cipher = "Test"
     sbox = [0x0, 0x1, 0x3, 0x6, 0x7, 0x4, 0x5, 0x2]
-    simplifiedFile = simplify_ine(cipher)
-
+    # simplifiedFile = simplify_ine(cipher)
+    simplifiedFile = cipher + "_Simplified_Inequalities.txt"
     present = Reduce(simplifiedFile, sbox)
 
     rine = present.InequalitySizeReduce()

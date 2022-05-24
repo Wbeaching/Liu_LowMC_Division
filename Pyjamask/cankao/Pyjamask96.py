@@ -187,7 +187,8 @@ def Pyjamask( rounds, index ):
     for r in range(rounds - 1):
         # Sbox
         for i in range(32):
-            model = Sbox( model, X[r][i:96:32], Y[r][i:96:32] )
+            model = Sbox( model, X[r][i:96:
+                                      32], Y[r][i:96:32] )
 
         # row 0
         mat0 = Matrix( M0 )

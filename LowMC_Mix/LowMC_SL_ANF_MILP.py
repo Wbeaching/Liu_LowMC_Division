@@ -7,12 +7,16 @@ import sys
 sys.path.append("..")
 from preprocess import caculator as ca
 
+# 1. clean_ANF ---> file_ANF
+# 2. block_size ,round num, active_height
+#
+
 class LowMCMILP:
-    def __init__(self, n, r, input_DP, filename_model, filename_result):
+    def __init__(self, n, m, r, active_height, filename_model, filename_result):
         self.block_size = n
-        # 256
+        self.sbox_num = m
         self.round_num = r
-        self.input_dp = input_DP
+        self.active_height = active_height
         self.file_model = filename_model
         self.file_result = filename_result
         self.ANF_xi = self.clean_ANF()
@@ -21,7 +25,7 @@ class LowMCMILP:
             os.makedirs(f_path)
 
     def clean_ANF(self):
-        file_ANF = 'anf_of_sbox+linear-m_49-n_256.txt'
+        file_ANF = os.path.abspath('..') + '/preprocess/anf_of_sbox+linear-m_%d-n_%d.txt' % (self.sbox_num, self.block_size)
         anf = open(file_ANF, "r")
         ANF_xi = []
         anf_str = ''
@@ -82,6 +86,19 @@ class LowMCMILP:
         output_var = []
         output_var += self.create_state_var('x', self.round_num)
         file_obj.write(' + '.join(output_var) + '\n')
+        file_obj.close()
+
+    def input_init_new(self, input_weight):
+        """
+        Generate constraints by the initial division property.
+        """
+        # in_vars = self.create_state_var('x', 0)
+        # constraints = ['%s = %s' % (a, b) for a, b in zip(in_vars, input_DP)]
+        file_obj = open(self.file_model, "a")
+        file_obj.write('Subject To\n')
+        output_var = []
+        output_var += self.create_state_var('x', 0)
+        file_obj.write(' + '.join(output_var) + ' = ' + str(input_weight) + '\n')
         file_obj.close()
 
     def input_init(self, input_DP):
@@ -188,9 +205,9 @@ class LowMCMILP:
         for rnd in range(self.round_num):
             self.constraint_fi(rnd)
 
-    def create_model(self, inputDP):
+    def create_model(self):
         self.create_target_fn()
-        self.input_init(inputDP)
+        self.input_init_new(self.active_height)
         self.create_round_fn()
         ANF_map, index_w = self.create_ANF_map_and_indexw()
         self.create_binary(ANF_map, index_w)
@@ -329,28 +346,22 @@ class LowMCMILP:
 
 
 if __name__ == "__main__":
-    block_size = 256
+    block_size = 192
     len_zero = []
-    rounds = 3
+    rounds = 15
     filepath = 'result/LowMC_division_R%i/' % (rounds)
-    # filename_all = filepath + '---LowMC_division----R%i_AllResult.txt' % (rounds)
-    # for active_point in range(1, block_size):
-    for active_point in range(1):
-    #     active_point = 2
-        vector = ['1'] * block_size
-        # vector[active_point] = '0'
-        input_DP = ''.join(vector)
-        # 最左边为最低位
-        # filename_model = filepath + 'LowMC_division_R%i_A%i_model.lp' % (rounds, active_point)
-        # filename_result = filepath + 'LowMC_division_R%i_A%i_result.txt' % (rounds, active_point)
-        filename_model = filepath + 'LowMC_division_R3_A64_model_old.lp'
-        filename_result = filepath + 'LowMC_division_R3_A64_result_old.txt'
+    filename_all = filepath + '---LowMC_division----R%i_AllResult.txt' % (rounds)
 
-        fm = LowMCMILP(block_size, rounds, input_DP, filename_model, filename_result)
-        # fm.create_model(input_DP)
-        zero_ = fm.solve_model()
-        # # len_zero.append('active_point = %i, len of zero = %i' % (active_point, zero_))
-        # file_r = open(filename_all, "a")
-        # file_r.write('active_point = %i, len of zero = %i' % (active_point, zero_))
-        # file_r.write('\n')
-        # file_r.close()
+    active_height = 191
+    # 最左边为最低位
+    filename_model = filepath + 'LowMC_division_R%i_A%i_model.lp' % (rounds, active_height)
+    filename_result = filepath + 'LowMC_division_R%i_A%i_result.txt' % (rounds, active_height)
+
+    fm = LowMCMILP(block_size, rounds, active_height, filename_model, filename_result)
+    fm.create_model(active_height)
+    zero_ = fm.solve_model()
+    # len_zero.append('active_point = %i, len of zero = %i' % (active_point, zero_))
+    # file_r = open(filename_all, "a")
+    # file_r.write('active_height = %i, len of zero = %i' % (active_height, zero_))
+    # file_r.write('\n')
+    # file_r.close()

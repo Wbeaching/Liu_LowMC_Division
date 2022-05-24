@@ -2,7 +2,10 @@ import os
 
 import gurobipy as gp
 import time
-import caculator as ca
+import sys
+
+sys.path.append("..")
+from preprocess import caculator as ca
 
 
 class LowMCMILP:
@@ -329,12 +332,12 @@ class LowMCMILP:
 if __name__ == "__main__":
     block_size = 128
     len_zero = []
-    rounds = 8
+    rounds = 3
     filepath = 'result/LowMC_division_R%i/' % (rounds)
-    filename_all = filepath + '---LowMC_division----R%i_AllResult.txt' % (rounds)
-    for active_point in range(4, block_size):
-    # for active_point in range(1):
-    #     active_point = 2
+    filename_all = filepath + '---LowMC_division----R%i_AllResult.txt' % rounds
+    # for active_point in range(1, block_size):
+    for active_point in range(1):
+        active_point = 21
         vector = ['1'] * block_size
         vector[active_point] = '0'
         input_DP = ''.join(vector)

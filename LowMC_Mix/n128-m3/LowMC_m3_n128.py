@@ -2,7 +2,10 @@ import os
 
 import gurobipy as gp
 import time
-import preprocess.caculator as ca
+import sys
+
+sys.path.append("..")
+from preprocess import caculator as ca
 
 class LowMCMILP:
     def __init__(self, n, r, input_DP, filename_model, filename_result):
@@ -79,6 +82,19 @@ class LowMCMILP:
         output_var = []
         output_var += self.create_state_var('x', self.round_num)
         file_obj.write(' + '.join(output_var) + '\n')
+        file_obj.close()
+
+    def input_init_new(self, input_weight):
+        """
+        Generate constraints by the initial division property.
+        """
+        # in_vars = self.create_state_var('x', 0)
+        # constraints = ['%s = %s' % (a, b) for a, b in zip(in_vars, input_DP)]
+        file_obj = open(self.file_model, "a")
+        file_obj.write('Subject To\n')
+        output_var = []
+        output_var += self.create_state_var('x', self.round_num)
+        file_obj.write(' + '.join(output_var) + '=' + str(input_weight) + '\n')
         file_obj.close()
 
     def input_init(self, input_DP):
@@ -328,12 +344,12 @@ class LowMCMILP:
 if __name__ == "__main__":
     block_size = 128
     len_zero = []
-    rounds = 44
+    rounds = 43
     filepath = 'result/LowMC_division_R%i/' % (rounds)
     filename_all = filepath + '---LowMC_division----R%i_AllResult.txt' % (rounds)
-    for active_point in range(4, block_size):
-    # for active_point in range(1):
-    #     active_point = 2
+    # for active_point in range(4, block_size):
+    for active_point in range(1):
+        active_point = 95
         vector = ['1'] * block_size
         vector[active_point] = '0'
         input_DP = ''.join(vector)
